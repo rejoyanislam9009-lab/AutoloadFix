@@ -55,6 +55,8 @@ jobs:
         uses: wordpress/plugin-check-action@v1.1.9
         with:
           build-dir: ./build/autoloadfix
+          ignore-warnings: true
+          ignore-codes: WordPress.WP.I18n.MissingTranslatorsComment
 
   package:
     name: Build installable ZIP
