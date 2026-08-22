@@ -1,90 +1,121 @@
 === AutoloadFix ===
 Contributors: rejoyanislam9009-lab
-Tags: autoload, autoloaded options, database, performance, site health
+Tags: autoload, database, performance, site health, optimization
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 7.2
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Audit WordPress autoloaded options, find large database entries, safely disable unnecessary autoloading, and restore changes from snapshots.
+Audit WordPress autoloaded options, track growth, understand likely ownership, make cautious changes, and restore from snapshots.
 
 == Description ==
 
-AutoloadFix helps administrators understand WordPress autoloaded options without turning database maintenance into guesswork.
+AutoloadFix is a focused WordPress performance utility for reviewing autoloaded options safely.
 
-The plugin scans the options table using the autoload values WordPress itself considers autoloaded. It highlights large entries, estimates likely plugin ownership, protects known WordPress-critical options, and lets administrators disable autoloading only after an explicit review.
+Autoloaded options can be loaded on many WordPress requests. AutoloadFix helps administrators understand how much data is being autoloaded, which entries are largest, which plugin or theme may own an option, and whether autoload growth is changing over time.
 
-Before AutoloadFix changes an autoload value, it stores a restore snapshot. The option value itself is not deleted.
+AutoloadFix is conservative by design. It does not delete option values, does not automatically change unknown options, and protects WordPress-critical options from mutation.
 
-Key features:
+= Highlights =
 
-* Autoload health score and total autoload size.
-* Largest autoloaded option report.
-* Likely plugin ownership heuristics with confidence labels.
-* Protected WordPress core/site-critical options.
-* Large-option and inactive-plugin review candidates.
-* Snapshot-before-change safety workflow.
-* Restore history.
-* WordPress Site Health integration.
-* JSON diagnostic export.
-* No external API, account, tracking, advertising, or frontend scripts.
+* Autoload health score, total size, option count, and large-entry metrics.
+* Largest 250 autoloaded option review workspace.
+* Search and assessment filters plus a watched-only view.
+* Likely plugin/theme ownership with confidence scoring.
+* Conservative assessment levels: Protected, Review, Candidate, and Ignored.
+* Per-option impact estimate as a percentage of total autoload data.
+* Watch list for options you want to monitor.
+* Ignore list for entries you do not want recommended.
+* Custom protected option names.
+* WordPress-critical role/capability options are automatically protected, including prefixed user-roles options.
+* Snapshot-before-change workflow.
+* History and one-click restore.
+* Read-only safe mode that blocks AutoloadFix autoload mutations.
+* Manual, daily, or weekly audit points.
+* Autoload growth alerts in the dashboard.
+* Lightweight CSS trend visualization with no external chart library.
+* JSON and CSV diagnostic exports without option values.
+* WordPress Site Health test and Site Health Info fields.
+* Safe diagnostics for WordPress, PHP, database, object cache, and raw autoload-state distribution.
+* Multisite-aware active plugin detection.
+* WP-CLI tools: `wp autoloadfix status`, `wp autoloadfix top`, and `wp autoloadfix audit`.
+* No external API, account, ads, telemetry, or frontend assets.
 
-Important: AutoloadFix deliberately does not claim that an unknown option is safe. An option may be required by a theme, plugin, integration, scheduled task, checkout flow, or custom code. Test important site workflows after any change.
+= Safety model =
+
+AutoloadFix never displays or exports option values. It only exposes metadata such as option name, byte size, autoload state, likely owner, confidence, and classification.
+
+When an administrator disables autoload for an option, AutoloadFix first stores the option's previous raw autoload state in a snapshot. It then uses WordPress's autoload API and verifies the resulting database state. If the change cannot be verified, the temporary snapshot is removed and the action is reported as failed.
+
+Ownership detection is heuristic. An option can still be required by custom code, a theme, an integration, a scheduled task, or an active workflow. Test important site paths after every change.
 
 == Installation ==
 
-1. Upload the `autoloadfix` folder to `/wp-content/plugins/`, or install the ZIP from Plugins > Add New > Upload Plugin.
+1. Upload the `autoloadfix` folder to `/wp-content/plugins/` or install the ZIP from Plugins > Add New Plugin > Upload Plugin.
 2. Activate AutoloadFix.
 3. Open AutoloadFix in the WordPress admin menu.
-4. Review the largest autoloaded options and their assessment.
-5. If you choose to disable autoloading for an option, test the site afterward.
-6. Use AutoloadFix > History & Restore if you need to restore the previous autoload behavior.
+4. Open AutoloadFix > Monitor & Tools and run a manual audit to establish a trend baseline.
+5. Review entries before making any autoload change.
 
 == Frequently Asked Questions ==
 
-= Does AutoloadFix delete option values? =
+= Does AutoloadFix delete database options? =
 
-No. The primary action changes only whether a selected option is autoloaded. The option value remains in the database.
+No. AutoloadFix changes only autoload behavior for administrator-selected options. It does not delete the option value.
 
-= Does it automatically disable everything it marks as large? =
+= Does AutoloadFix automatically disable options? =
 
-No. Size alone is not proof that disabling autoload is safe. AutoloadFix requires an administrator to review and explicitly apply a change.
+No. Unknown or third-party entries are never changed automatically.
 
-= Can I restore a change? =
+= What does Read-only safe mode do? =
 
-Yes. AutoloadFix stores the prior autoload behavior in a snapshot before a change and provides a restore action in History & Restore.
+It prevents AutoloadFix from disabling or restoring autoload states while keeping scanning, diagnostics, watch/ignore lists, exports, and audit history available.
 
-= Does it use an external service or collect data? =
+= Are option values included in reports? =
 
-No. Scanning and changes are performed locally on your WordPress site. AutoloadFix does not send telemetry.
+No. JSON and CSV exports contain metadata only.
 
-= Why does it require WordPress 6.6 or later? =
+= Does it use an external service? =
 
-WordPress 6.6 introduced public APIs and Site Health improvements for modern autoload behavior. AutoloadFix relies on those APIs rather than implementing its own incompatible autoload rules.
+No. AutoloadFix runs locally in WordPress and does not require an account or API key.
 
-== Privacy ==
+= Does it work with multisite? =
 
-AutoloadFix runs locally in WordPress. It does not send site data, option names, diagnostics, or usage telemetry to an external service. Exported reports are generated only when an administrator explicitly requests them.
-
-== Safety ==
-
-AutoloadFix changes autoload behavior only after an administrator explicitly chooses an option. It does not delete the option value. Known WordPress-critical options are locked, and a restore snapshot is created before a successful change is attempted. Ownership detection is heuristic and should be treated as guidance, not proof.
+AutoloadFix recognizes network-active plugins when estimating ownership. Audits and settings are maintained per site.
 
 == Screenshots ==
 
-1. Autoload health score and metrics.
-2. Largest autoloaded options with ownership and risk assessment.
-3. Change history and restore snapshots.
-4. Scanner thresholds and settings.
+1. Autoload health overview and metrics.
+2. Searchable option review workspace.
+3. Audit and trend history.
+4. Snapshot history and restore tools.
+5. Diagnostics and autoload-state breakdown.
+6. Monitoring and safety settings.
 
 == Changelog ==
 
+= 1.1.0 =
+* Added Monitor & Tools dashboard with audit trends.
+* Added manual, daily, and weekly audit points.
+* Added scheduled autoload growth alerts.
+* Added search, assessment filters, and watched-only review mode.
+* Added watch and ignore lists.
+* Added owner confidence and per-option impact metrics.
+* Added read-only safe mode.
+* Added custom protected option names.
+* Automatically protected prefixed WordPress user-role options.
+* Added CSV export alongside JSON export.
+* Added Diagnostics section and Site Health Info fields.
+* Added WP-CLI status, top, and audit commands.
+* Added safer upgrade, cron, and uninstall handling.
+* Expanded responsive monitoring UI.
+
 = 1.0.0 =
-* Initial release.
-* Added autoload health dashboard.
-* Added largest-option scanner.
-* Added ownership heuristics and protected option rules.
-* Added snapshot-before-change and restore history.
-* Added Site Health integration and JSON export.
+* Initial release with health score, scanner, ownership heuristics, protected options, snapshots, restore history, Site Health integration, and JSON export.
+
+== Upgrade Notice ==
+
+= 1.1.0 =
+Adds professional monitoring, filtering, safety, diagnostics, and WP-CLI tools while preserving the conservative snapshot-first model.
