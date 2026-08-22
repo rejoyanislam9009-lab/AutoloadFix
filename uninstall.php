@@ -19,6 +19,8 @@ delete_option( 'autoloadfix_settings' );
 delete_option( 'autoloadfix_ignored_options' );
 delete_option( 'autoloadfix_watched_options' );
 delete_option( 'autoloadfix_growth_notice' );
+delete_option( 'autoloadfix_cache_probe' );
+delete_option( 'autoloadfix_last_purge' );
 delete_option( 'autoloadfix_db_version' );
 
 global $wpdb;
