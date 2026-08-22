@@ -39,3 +39,33 @@ jobs:
 
       - name: Run Plugin Check
         uses: wordpress/plugin-check-action@v1.1.9
+
+  package:
+    name: Build installable ZIP
+    runs-on: ubuntu-latest
+    needs: [php-lint, plugin-check]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build distribution
+        shell: bash
+        run: |
+          mkdir -p dist/autoloadfix
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.gitignore' \
+            --exclude='.distignore' \
+            --exclude='README.md' \
+            --exclude='dist' \
+            ./ dist/autoloadfix/
+          cd dist
+          zip -r autoloadfix-1.1.0.zip autoloadfix
+
+      - name: Upload installable ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: autoloadfix-1.1.0
+          path: dist/autoloadfix-1.1.0.zip
+          if-no-files-found: error
