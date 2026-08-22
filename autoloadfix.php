@@ -3,7 +3,7 @@
  * Plugin Name:       AutoloadFix
  * Plugin URI:        https://github.com/rejoyanislam9009-lab/AutoloadFix
  * Description:       Audit autoloaded options, track growth, review cache layers, cautiously optimize WordPress, and restore autoload changes from snapshots.
- * Version:           1.2.0
+ * Version:           1.2.1
  * Requires at least: 6.6
  * Requires PHP:      7.2
  * Author:            Rejoyan Islam
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'AUTOLOADFIX_VERSION', '1.2.0' );
+define( 'AUTOLOADFIX_VERSION', '1.2.1' );
 define( 'AUTOLOADFIX_FILE', __FILE__ );
 define( 'AUTOLOADFIX_PATH', plugin_dir_path( __FILE__ ) );
 define( 'AUTOLOADFIX_URL', plugin_dir_url( __FILE__ ) );
