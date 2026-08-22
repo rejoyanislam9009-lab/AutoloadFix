@@ -47,7 +47,7 @@ class AutoloadFix_Site_Scanner {
 		wp_enqueue_style( 'autoloadfix-site-scanner', AUTOLOADFIX_URL . 'assets/css/site-scanner.css', array( 'autoloadfix-admin' ), AUTOLOADFIX_VERSION );
 	}
 
-	/** Start a new scan and process the first batch. */
+	/** Start a new scan and process the first safe batch. */
 	public function handle_start() {
 		$this->require_manage_options();
 		check_admin_referer( 'autoloadfix_site_scan_start' );
@@ -69,27 +69,27 @@ class AutoloadFix_Site_Scanner {
 		$this->redirect( 'batch_complete' );
 	}
 
-	/** Re-check one previously scanned page by result key. */
+	/** Re-check one previously scanned page by saved result key. */
 	public function handle_recheck() {
 		$this->require_manage_options();
 		check_admin_referer( 'autoloadfix_site_scan_recheck' );
+
 		$key     = isset( $_POST['result_key'] ) ? sanitize_key( wp_unslash( $_POST['result_key'] ) ) : '';
 		$results = $this->get_results();
-
 		if ( ! $key || empty( $results[ $key ]['url'] ) || ! $this->is_same_site_url( $results[ $key ]['url'] ) ) {
 			$this->redirect( 'invalid_page' );
 		}
 
-		$old         = $results[ $key ];
-		$new         = $this->scan_item( $old );
-		$new['fixed'] = $this->severity_rank( isset( $old['severity'] ) ? $old['severity'] : 'good' ) > 0 && 0 === $this->severity_rank( $new['severity'] );
+		$old                      = $results[ $key ];
+		$new                      = $this->scan_item( $old );
 		$new['previous_severity'] = isset( $old['severity'] ) ? sanitize_key( $old['severity'] ) : 'good';
-		$results[ $key ] = $new;
+		$new['fixed']             = $this->severity_rank( $new['severity'] ) < $this->severity_rank( $new['previous_severity'] ) && 0 === $this->severity_rank( $new['severity'] );
+		$results[ $key ]          = $new;
 		$this->save_option_noautoload( 'autoloadfix_site_scan_results', $results );
 		$this->redirect( $new['fixed'] ? 'page_fixed' : 'page_rechecked' );
 	}
 
-	/** Re-check up to one safe batch of pages that still have issues. */
+	/** Re-check a safe batch of pages that still have actionable findings. */
 	public function handle_recheck_issues() {
 		$this->require_manage_options();
 		check_admin_referer( 'autoloadfix_site_scan_recheck_issues' );
@@ -100,16 +100,14 @@ class AutoloadFix_Site_Scanner {
 			if ( $count >= self::BATCH_SIZE ) {
 				break;
 			}
-			if ( empty( $old['url'] ) || 0 === $this->severity_rank( isset( $old['severity'] ) ? $old['severity'] : 'good' ) ) {
-				continue;
-			}
-			if ( ! $this->is_same_site_url( $old['url'] ) ) {
+			$old_severity = isset( $old['severity'] ) ? $old['severity'] : 'good';
+			if ( empty( $old['url'] ) || 0 === $this->severity_rank( $old_severity ) || ! $this->is_same_site_url( $old['url'] ) ) {
 				continue;
 			}
 
 			$new                      = $this->scan_item( $old );
+			$new['previous_severity'] = sanitize_key( $old_severity );
 			$new['fixed']             = 0 === $this->severity_rank( $new['severity'] );
-			$new['previous_severity'] = isset( $old['severity'] ) ? sanitize_key( $old['severity'] ) : 'review';
 			$results[ $key ]          = $new;
 			$count++;
 		}
@@ -118,7 +116,7 @@ class AutoloadFix_Site_Scanner {
 		$this->redirect( 'issues_rechecked' );
 	}
 
-	/** Clear scan data. */
+	/** Clear saved scan data. */
 	public function handle_clear() {
 		$this->require_manage_options();
 		check_admin_referer( 'autoloadfix_site_scan_clear' );
@@ -132,14 +130,14 @@ class AutoloadFix_Site_Scanner {
 	/** Render scanner page. */
 	public function render_page() {
 		$this->require_manage_options();
-		$queue     = $this->get_queue();
-		$results   = $this->get_results();
-		$cursor    = (int) get_option( 'autoloadfix_site_scan_cursor', 0 );
-		$total     = count( $queue );
-		$complete  = $total > 0 && $cursor >= $total;
-		$stats     = $this->get_stats( $results );
-		$guidance  = $this->get_cache_context();
-		$progress  = $total > 0 ? min( 100, (int) round( ( $cursor / $total ) * 100 ) ) : 0;
+		$queue    = $this->get_queue();
+		$results  = $this->get_results();
+		$cursor   = (int) get_option( 'autoloadfix_site_scan_cursor', 0 );
+		$total    = count( $queue );
+		$complete = $total > 0 && $cursor >= $total;
+		$stats    = $this->get_stats( $results );
+		$guidance = $this->get_cache_context();
+		$progress = $total > 0 ? min( 100, (int) round( ( $cursor / $total ) * 100 ) ) : 0;
 
 		$this->render_notice();
 		?>
@@ -210,31 +208,31 @@ class AutoloadFix_Site_Scanner {
 					<p><?php esc_html_e( 'No site scan has been run yet.', 'autoloadfix' ); ?></p>
 				<?php else : ?>
 					<div class="autoloadfix-site-table-wrap">
-					<table class="widefat striped autoloadfix-site-table">
-						<thead><tr><th><?php esc_html_e( 'Page', 'autoloadfix' ); ?></th><th><?php esc_html_e( 'Response', 'autoloadfix' ); ?></th><th><?php esc_html_e( 'Cache', 'autoloadfix' ); ?></th><th><?php esc_html_e( 'Status', 'autoloadfix' ); ?></th><th><?php esc_html_e( 'Fix & verify', 'autoloadfix' ); ?></th></tr></thead>
-						<tbody>
-						<?php foreach ( $results as $key => $result ) : ?>
-							<tr>
-								<td><strong><?php echo esc_html( $result['title'] ); ?></strong><span class="autoloadfix-page-type"><?php echo esc_html( $result['type'] ); ?></span><code><?php echo esc_html( $this->short_url( $result['url'] ) ); ?></code></td>
-								<td><strong><?php echo esc_html( (int) $result['status_code'] ); ?></strong><span><?php echo esc_html( sprintf( '%d ms', (int) $result['latency_ms'] ) ); ?></span></td>
-								<td><strong><?php echo esc_html( strtoupper( $result['cache_state'] ) ); ?></strong><span><?php echo esc_html( ! empty( $result['warm_hit'] ) ? __( 'Warm HIT verified', 'autoloadfix' ) : $result['cache_note'] ); ?></span></td>
-								<td><span class="autoloadfix-severity is-<?php echo esc_attr( $result['severity'] ); ?>"><?php echo esc_html( $this->severity_label( $result['severity'] ) ); ?></span><?php if ( ! empty( $result['fixed'] ) ) : ?><span class="autoloadfix-fixed"><?php esc_html_e( 'Fixed after re-check', 'autoloadfix' ); ?></span><?php endif; ?></td>
-								<td>
-									<details class="autoloadfix-fix-details">
-										<summary><?php esc_html_e( 'View fix steps', 'autoloadfix' ); ?></summary>
-										<?php $this->render_issues( $result ); ?>
-										<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-											<input type="hidden" name="action" value="autoloadfix_site_scan_recheck" />
-											<input type="hidden" name="result_key" value="<?php echo esc_attr( $key ); ?>" />
-											<?php wp_nonce_field( 'autoloadfix_site_scan_recheck' ); ?>
-											<button type="submit" class="button button-small"><?php esc_html_e( 'Re-check this page', 'autoloadfix' ); ?></button>
-										</form>
-									</details>
-								</td>
-							</tr>
-						<?php endforeach; ?>
-						</tbody>
-					</table>
+						<table class="widefat striped autoloadfix-site-table">
+							<thead><tr><th><?php esc_html_e( 'Page', 'autoloadfix' ); ?></th><th><?php esc_html_e( 'Response', 'autoloadfix' ); ?></th><th><?php esc_html_e( 'Cache', 'autoloadfix' ); ?></th><th><?php esc_html_e( 'Status', 'autoloadfix' ); ?></th><th><?php esc_html_e( 'Fix & verify', 'autoloadfix' ); ?></th></tr></thead>
+							<tbody>
+							<?php foreach ( $results as $key => $result ) : ?>
+								<tr>
+									<td><strong><?php echo esc_html( $result['title'] ); ?></strong><span class="autoloadfix-page-type"><?php echo esc_html( $result['type'] ); ?></span><code><?php echo esc_html( $this->short_url( $result['url'] ) ); ?></code></td>
+									<td><strong><?php echo esc_html( (int) $result['status_code'] ); ?></strong><span><?php echo esc_html( sprintf( '%d ms', (int) $result['latency_ms'] ) ); ?></span></td>
+									<td><strong><?php echo esc_html( strtoupper( $result['cache_state'] ) ); ?></strong><span><?php echo esc_html( ! empty( $result['warm_hit'] ) ? __( 'Warm HIT verified', 'autoloadfix' ) : $result['cache_note'] ); ?></span></td>
+									<td><span class="autoloadfix-severity is-<?php echo esc_attr( $result['severity'] ); ?>"><?php echo esc_html( $this->severity_label( $result['severity'] ) ); ?></span><?php if ( ! empty( $result['fixed'] ) ) : ?><span class="autoloadfix-fixed"><?php esc_html_e( 'Fixed after re-check', 'autoloadfix' ); ?></span><?php endif; ?></td>
+									<td>
+										<details class="autoloadfix-fix-details">
+											<summary><?php esc_html_e( 'View fix steps', 'autoloadfix' ); ?></summary>
+											<?php $this->render_issues( $result ); ?>
+											<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+												<input type="hidden" name="action" value="autoloadfix_site_scan_recheck" />
+												<input type="hidden" name="result_key" value="<?php echo esc_attr( $key ); ?>" />
+												<?php wp_nonce_field( 'autoloadfix_site_scan_recheck' ); ?>
+												<button type="submit" class="button button-small"><?php esc_html_e( 'Re-check this page', 'autoloadfix' ); ?></button>
+											</form>
+										</details>
+									</td>
+								</tr>
+							<?php endforeach; ?>
+							</tbody>
+						</table>
 					</div>
 				<?php endif; ?>
 			</section>
@@ -288,16 +286,20 @@ class AutoloadFix_Site_Scanner {
 			$this->queue_add( $items, get_permalink( $posts_id ), get_the_title( $posts_id ), 'posts-page', false );
 		}
 
+		if ( function_exists( 'wc_get_page_id' ) ) {
+			$shop_id = (int) wc_get_page_id( 'shop' );
+			if ( $shop_id > 0 ) {
+				$this->queue_add( $items, get_permalink( $shop_id ), __( 'WooCommerce Shop', 'autoloadfix' ), 'woocommerce-shop', false );
+			}
+		}
+
 		$dynamic_ids = $this->get_dynamic_page_ids();
 		foreach ( $dynamic_ids as $label => $id ) {
-			if ( $id ) {
-				$this->queue_add( $items, get_permalink( $id ), $label, 'woocommerce', true );
-			}
+			$this->queue_add( $items, get_permalink( $id ), $label, 'woocommerce-dynamic', true );
 		}
 
 		$types = get_post_types( array( 'public' => true ), 'names' );
 		unset( $types['attachment'] );
-
 		foreach ( $types as $type ) {
 			$remaining = self::MAX_URLS - count( $items );
 			if ( $remaining <= 0 ) {
@@ -349,7 +351,7 @@ class AutoloadFix_Site_Scanner {
 	}
 
 	/**
-	 * Scan one page with two anonymous requests.
+	 * Scan one page with two anonymous same-site requests.
 	 *
 	 * @param array<string,mixed> $item Queue/result item.
 	 * @return array<string,mixed>
@@ -369,19 +371,19 @@ class AutoloadFix_Site_Scanner {
 		$assessment = $this->assess_page( $item, $first, $second );
 		return array_merge(
 			array(
-				'url'           => esc_url_raw( $item['url'] ),
-				'title'         => sanitize_text_field( $item['title'] ),
-				'type'          => sanitize_key( $item['type'] ),
-				'dynamic'       => ! empty( $item['dynamic'] ),
-				'checked_at'    => time(),
-				'status_code'   => (int) $second['status_code'],
-				'latency_ms'    => (int) $second['latency_ms'],
-				'first_cache'   => sanitize_key( $first['cache_state'] ),
-				'cache_state'   => sanitize_key( $second['cache_state'] ),
-				'cache_note'    => sanitize_text_field( $second['cache_note'] ),
-				'warm_hit'      => 'hit' === $second['cache_state'],
-				'headers'       => $second['headers'],
-				'fixed'         => false,
+				'url'         => esc_url_raw( $item['url'] ),
+				'title'       => sanitize_text_field( $item['title'] ),
+				'type'        => sanitize_key( $item['type'] ),
+				'dynamic'     => ! empty( $item['dynamic'] ),
+				'checked_at'  => time(),
+				'status_code' => (int) $second['status_code'],
+				'latency_ms'  => (int) $second['latency_ms'],
+				'first_cache' => sanitize_key( $first['cache_state'] ),
+				'cache_state' => sanitize_key( $second['cache_state'] ),
+				'cache_note'  => sanitize_text_field( $second['cache_note'] ),
+				'warm_hit'    => 'hit' === $second['cache_state'],
+				'headers'     => $second['headers'],
+				'fixed'       => false,
 			),
 			$assessment
 		);
@@ -407,7 +409,7 @@ class AutoloadFix_Site_Scanner {
 			return array( 'error' => sanitize_text_field( $response->get_error_message() ) );
 		}
 
-		$headers     = array();
+		$headers      = array();
 		$header_names = array( 'cache-control', 'age', 'x-cache', 'x-litespeed-cache', 'cf-cache-status', 'x-proxy-cache', 'x-kinsta-cache', 'x-wp-cf-super-cache', 'server', 'via', 'location' );
 		foreach ( $header_names as $name ) {
 			$value = wp_remote_retrieve_header( $response, $name );
@@ -551,9 +553,9 @@ class AutoloadFix_Site_Scanner {
 	 * @return array<int,string>
 	 */
 	private function get_fix_steps( $code, $url ) {
-		$ctx  = $this->get_cache_context();
-		$path = wp_parse_url( $url, PHP_URL_PATH );
-		$path = $path ? $path : '/';
+		$ctx   = $this->get_cache_context();
+		$path  = wp_parse_url( $url, PHP_URL_PATH );
+		$path  = $path ? $path : '/';
 		$steps = array();
 
 		if ( in_array( $code, array( 'not_warming', 'unexpected_bypass', 'cache_control_private', 'no_header' ), true ) ) {
@@ -572,10 +574,10 @@ class AutoloadFix_Site_Scanner {
 			$steps[] = __( 'Check AutoloadFix Overview for autoload growth and Monitor & Tools for recent changes.', 'autoloadfix' );
 			$steps[] = __( 'If your host actually provides Redis/Memcached, consider persistent object cache for database-heavy stores; do not install an object-cache plugin without the server service.', 'autoloadfix' );
 			$steps[] = __( 'Review slow plugins, external API calls, PHP workers, database load, and hosting resource limits.', 'autoloadfix' );
-		} elseif ( in_array( $code, array( 'http_5xx', 'http_4xx', 'redirect' ), true ) ) {
-			$steps[] = __( 'Open the URL in a logged-out/private browser and confirm the same status or redirect.', 'autoloadfix' );
-			$steps[] = __( 'Check WordPress permalink/page status, redirect rules, maintenance/security plugins, and server error logs as appropriate.', 'autoloadfix' );
-			$steps[] = __( 'After correcting the route or application error, return to AutoloadFix and re-check this page.', 'autoloadfix' );
+		} elseif ( in_array( $code, array( 'http_5xx', 'http_4xx', 'redirect', 'probe_error' ), true ) ) {
+			$steps[] = __( 'Open the URL in a logged-out/private browser and confirm the same response or redirect behavior.', 'autoloadfix' );
+			$steps[] = __( 'Check WordPress permalink/page status, redirect rules, maintenance/security plugins, DNS/loopback restrictions, and server logs as appropriate.', 'autoloadfix' );
+			$steps[] = __( 'After correcting the route or application/server problem, return to AutoloadFix and re-check this page.', 'autoloadfix' );
 		} else {
 			$steps[] = __( 'Review the page in a logged-out session, make only the necessary change, then re-check the same page in AutoloadFix.', 'autoloadfix' );
 		}
@@ -586,7 +588,7 @@ class AutoloadFix_Site_Scanner {
 	/**
 	 * Detect active cache plugin and relevant menu paths.
 	 *
-	 * @return array<string,string>
+	 * @return array<string,mixed>
 	 */
 	private function get_cache_context() {
 		if ( ! function_exists( 'is_plugin_active' ) ) {
@@ -604,31 +606,35 @@ class AutoloadFix_Site_Scanner {
 		);
 		foreach ( $defs as $def ) {
 			if ( is_plugin_active( $def['file'] ) || ( is_multisite() && is_plugin_active_for_network( $def['file'] ) ) ) {
+				$def['recognized'] = true;
 				return $def;
 			}
 		}
 		return array(
-			'name'    => __( 'No recognized WordPress page-cache plugin', 'autoloadfix' ),
-			'purge'   => __( 'Use your hosting/CDN cache control if one exists', 'autoloadfix' ),
-			'cache'   => __( 'Check your host/server cache settings', 'autoloadfix' ),
-			'exclude' => __( 'Check host/CDN cache exclusion rules', 'autoloadfix' ),
+			'recognized' => false,
+			'name'       => __( 'No recognized WordPress page-cache plugin', 'autoloadfix' ),
+			'purge'      => __( 'Use your hosting/CDN cache control if one exists', 'autoloadfix' ),
+			'cache'      => __( 'Check your host/server cache settings', 'autoloadfix' ),
+			'exclude'    => __( 'Check host/CDN cache exclusion rules', 'autoloadfix' ),
 		);
 	}
 
 	/** @return bool */
 	private function has_page_cache_plugin() {
 		$ctx = $this->get_cache_context();
-		return 'No recognized WordPress page-cache plugin' !== $ctx['name'];
+		return ! empty( $ctx['recognized'] );
 	}
 
 	/**
+	 * Return only WooCommerce pages that should be treated as dynamic/shared-cache-sensitive.
+	 * The Shop archive is intentionally excluded because it is normally cacheable.
+	 *
 	 * @return array<string,int>
 	 */
 	private function get_dynamic_page_ids() {
 		$ids = array();
 		if ( function_exists( 'wc_get_page_id' ) ) {
 			$map = array(
-				__( 'WooCommerce Shop', 'autoloadfix' )       => (int) wc_get_page_id( 'shop' ),
 				__( 'WooCommerce Cart', 'autoloadfix' )       => (int) wc_get_page_id( 'cart' ),
 				__( 'WooCommerce Checkout', 'autoloadfix' )   => (int) wc_get_page_id( 'checkout' ),
 				__( 'WooCommerce My Account', 'autoloadfix' ) => (int) wc_get_page_id( 'myaccount' ),
@@ -637,7 +643,7 @@ class AutoloadFix_Site_Scanner {
 				if ( $id > 0 ) {
 					$ids[ $label ] = $id;
 				}
-		}
+			}
 		}
 		return $ids;
 	}
@@ -768,9 +774,9 @@ class AutoloadFix_Site_Scanner {
 	 * @return string
 	 */
 	private function short_url( $url ) {
-		$path = wp_parse_url( $url, PHP_URL_PATH );
+		$path  = wp_parse_url( $url, PHP_URL_PATH );
 		$query = wp_parse_url( $url, PHP_URL_QUERY );
-		$out = $path ? $path : '/';
+		$out   = $path ? $path : '/';
 		if ( $query ) {
 			$out .= '?' . $query;
 		}
@@ -791,17 +797,17 @@ class AutoloadFix_Site_Scanner {
 		}
 	}
 
-	/** Render query-string notice. */
+	/** Render action notice. */
 	private function render_notice() {
 		$key = isset( $_GET['af_site_notice'] ) ? sanitize_key( wp_unslash( $_GET['af_site_notice'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$map = array(
-			'scan_started'      => array( 'success', __( 'Site scan started and the first safe batch was checked.', 'autoloadfix' ) ),
-			'batch_complete'    => array( 'success', __( 'The next site-scan batch was checked.', 'autoloadfix' ) ),
-			'page_fixed'        => array( 'success', __( 'Re-check passed: the previously detected problem is no longer present in this scan.', 'autoloadfix' ) ),
-			'page_rechecked'    => array( 'info', __( 'Page re-checked. Review the current result and fix steps below.', 'autoloadfix' ) ),
-			'issues_rechecked'  => array( 'info', __( 'A safe batch of problem pages was re-checked.', 'autoloadfix' ) ),
-			'invalid_page'      => array( 'error', __( 'The saved page could not be safely re-checked.', 'autoloadfix' ) ),
-			'scan_cleared'      => array( 'success', __( 'Saved site-scan results were cleared.', 'autoloadfix' ) ),
+			'scan_started'     => array( 'success', __( 'Site scan started and the first safe batch was checked.', 'autoloadfix' ) ),
+			'batch_complete'   => array( 'success', __( 'The next site-scan batch was checked.', 'autoloadfix' ) ),
+			'page_fixed'       => array( 'success', __( 'Re-check passed: the previously detected problem is no longer present in this scan.', 'autoloadfix' ) ),
+			'page_rechecked'   => array( 'info', __( 'Page re-checked. Review the current result and fix steps below.', 'autoloadfix' ) ),
+			'issues_rechecked' => array( 'info', __( 'A safe batch of problem pages was re-checked.', 'autoloadfix' ) ),
+			'invalid_page'     => array( 'error', __( 'The saved page could not be safely re-checked.', 'autoloadfix' ) ),
+			'scan_cleared'     => array( 'success', __( 'Saved site-scan results were cleared.', 'autoloadfix' ) ),
 		);
 		if ( isset( $map[ $key ] ) ) {
 			printf( '<div class="notice notice-%1$s is-dismissible"><p>%2$s</p></div>', esc_attr( $map[ $key ][0] ), esc_html( $map[ $key ][1] ) );
