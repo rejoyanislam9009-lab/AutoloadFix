@@ -60,6 +60,7 @@ final class AutoloadFix_Plugin {
 		if ( is_admin() ) {
 			new AutoloadFix_Admin( $this->scanner, $this->snapshot );
 			new AutoloadFix_Advanced_Admin( $this->scanner, $this->snapshot, $this->audit );
+			new AutoloadFix_Cache_Advisor( $this->scanner );
 		}
 
 		new AutoloadFix_Site_Health( $this->scanner );
