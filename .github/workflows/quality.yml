@@ -37,8 +37,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Prepare production tree
+        shell: bash
+        run: |
+          mkdir -p build/autoloadfix
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.gitignore' \
+            --exclude='.distignore' \
+            --exclude='README.md' \
+            --exclude='build' \
+            --exclude='dist' \
+            ./ build/autoloadfix/
+
       - name: Run Plugin Check
         uses: wordpress/plugin-check-action@v1.1.9
+        with:
+          build-dir: ./build/autoloadfix
+          ignore-warnings: true
+          ignore-codes: WordPress.WP.I18n.MissingTranslatorsComment
 
   package:
     name: Build installable ZIP
@@ -58,6 +76,7 @@ jobs:
             --exclude='.gitignore' \
             --exclude='.distignore' \
             --exclude='README.md' \
+            --exclude='build' \
             --exclude='dist' \
             ./ dist/autoloadfix/
           cd dist
