@@ -7,7 +7,7 @@ AutoloadFix is a WordPress performance utility for auditing autoloaded options, 
 - WordPress 6.6+
 - PHP 7.2+
 
-## Version 1.2.0 highlights
+## Version 1.2.1 highlights
 
 - Searchable/filterable largest-option review workspace
 - Ownership confidence and per-option impact percentages
@@ -17,11 +17,12 @@ AutoloadFix is a WordPress performance utility for auditing autoloaded options, 
 - Manual/daily/weekly audit history with growth alerts
 - Snapshot-before-change and restore history
 - Cache & Optimization Advisor
-- Detection of page cache, persistent object cache, cache drop-ins, and asset optimization
-- Warning for overlapping recognized full-page cache plugins
+- Detection of page-cache-capable plugins, persistent object cache, cache drop-ins, and asset-optimization capability
+- Warning for potentially overlapping page-cache plugins without assuming every feature is enabled
 - Server-aware cache-plugin guidance without automatic installation
-- Public-home cache probe that stores only status, timing, and selected cache-related headers
-- Safe one-click purge for supported active integrations plus exact manual purge paths for others
+- Two-request public-home cache verification with HIT/MISS/BYPASS/STALE classification when supported headers are exposed
+- Warm-cache HIT verification and a Next Best Action card
+- Safe one-click purge for supported active integrations plus manual purge paths for others
 - Separate confirmed persistent object-cache flush
 - WooCommerce-aware cache guidance
 - JSON and CSV metadata exports
@@ -34,7 +35,9 @@ AutoloadFix is a WordPress performance utility for auditing autoloaded options, 
 
 AutoloadFix never deletes option values and never automatically mutates unknown options. Option values are not displayed or exported. Administrator-triggered autoload changes require a successful snapshot first and are verified after WordPress applies the change.
 
-The cache advisor does not install third-party cache plugins or edit their settings automatically. It uses supported purge APIs/hooks where available and otherwise shows the manual WordPress menu path. Persistent object-cache flushing is intentionally separate and requires explicit confirmation.
+The cache advisor does not install third-party cache plugins or edit their settings automatically. It uses supported purge APIs/hooks where available and otherwise shows a manual WordPress menu path. Persistent object-cache flushing is intentionally separate and requires explicit confirmation.
+
+The public cache verifier makes two anonymous requests to the site's own home URL and stores only response metadata needed for cache diagnosis. It does not store page content.
 
 Ownership and cache-fit recommendations are heuristic, so administrators should test important frontend, checkout, account, form, scheduled-task, and admin workflows after performance changes.
 
