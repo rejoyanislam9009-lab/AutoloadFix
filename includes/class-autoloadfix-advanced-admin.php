@@ -69,17 +69,32 @@ class AutoloadFix_Advanced_Admin {
 		return $new_value;
 	}
 
-	/** Guard the original disable action. */
+	/** Guard the original disable action after validating its nonce. */
 	public function guard_disable() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		$name  = isset( $_POST['option_name'] ) ? sanitize_text_field( wp_unslash( $_POST['option_name'] ) ) : '';
+		$nonce = isset( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
+		if ( '' === $name || '' === $nonce || ! wp_verify_nonce( $nonce, 'autoloadfix_disable_' . $name ) ) {
+			return;
+		}
 		$settings = $this->scanner->get_settings();
-		$name     = isset( $_POST['option_name'] ) ? sanitize_text_field( wp_unslash( $_POST['option_name'] ) ) : '';
 		if ( ! empty( $settings['read_only'] ) || $this->scanner->is_ignored( $name ) ) {
 			$this->redirect( ! empty( $settings['read_only'] ) ? 'read_only' : 'ignored' );
 		}
 	}
 
-	/** Guard the original restore action. */
+	/** Guard the original restore action after validating its nonce. */
 	public function guard_restore() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		$snapshot_id = isset( $_POST['snapshot_id'] ) ? absint( $_POST['snapshot_id'] ) : 0;
+		$nonce       = isset( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
+		if ( ! $snapshot_id || '' === $nonce || ! wp_verify_nonce( $nonce, 'autoloadfix_restore_' . $snapshot_id ) ) {
+			return;
+		}
 		$settings = $this->scanner->get_settings();
 		if ( ! empty( $settings['read_only'] ) ) {
 			$this->redirect( 'read_only' );
@@ -140,11 +155,11 @@ class AutoloadFix_Advanced_Admin {
 				}
 			}
 		}
-		$current['audit_interval']         = $interval;
-		$current['growth_alert_percent']   = max( 1, min( 500, $growth ) );
-		$current['history_retention']      = max( 7, min( 365, $retention ) );
-		$current['read_only']              = isset( $_POST['read_only'] ) ? 1 : 0;
-		$current['custom_protected']       = implode( "\n", array_values( array_unique( $clean ) ) );
+		$current['audit_interval']       = $interval;
+		$current['growth_alert_percent'] = max( 1, min( 500, $growth ) );
+		$current['history_retention']    = max( 7, min( 365, $retention ) );
+		$current['read_only']            = isset( $_POST['read_only'] ) ? 1 : 0;
+		$current['custom_protected']     = implode( "\n", array_values( array_unique( $clean ) ) );
 		update_option( 'autoloadfix_settings', $current, false );
 		$this->audit->sync_schedule();
 		$this->redirect( 'settings_saved', 'settings' );
@@ -183,12 +198,19 @@ class AutoloadFix_Advanced_Admin {
 		if ( ! is_array( $notice ) || empty( $notice['delta_percent'] ) ) {
 			return;
 		}
-		?><div class="notice notice-warning"><p><strong><?php esc_html_e( 'Autoload growth detected:', 'autoloadfix' ); ?></strong> <?php echo esc_html( sprintf( __( '%1$s%% increase (%2$s) since the previous audit.', 'autoloadfix' ), number_format_i18n( (float) $notice['delta_percent'], 2 ), size_format( (int) $notice['delta_bytes'], 1 ) ) ); ?></p><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><input type="hidden" name="action" value="autoloadfix_dismiss_growth" /><?php wp_nonce_field( 'autoloadfix_dismiss_growth' ); ?><button class="button-link" type="submit"><?php esc_html_e( 'Dismiss', 'autoloadfix' ); ?></button></form></div><?php
+		?>
+		<div class="notice notice-warning"><p><strong><?php esc_html_e( 'Autoload growth detected:', 'autoloadfix' ); ?></strong>
+		<?php
+		/* translators: 1: Percentage increase. 2: Human-readable byte increase. */
+		echo esc_html( sprintf( __( '%1$s%% increase (%2$s) since the previous audit.', 'autoloadfix' ), number_format_i18n( (float) $notice['delta_percent'], 2 ), size_format( (int) $notice['delta_bytes'], 1 ) ) );
+		?>
+		</p><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><input type="hidden" name="action" value="autoloadfix_dismiss_growth" /><?php wp_nonce_field( 'autoloadfix_dismiss_growth' ); ?><button class="button-link" type="submit"><?php esc_html_e( 'Dismiss', 'autoloadfix' ); ?></button></form></div>
+		<?php
 	}
 
 	/** Render action notice. */
 	private function render_notice() {
-		$key = isset( $_GET['af_adv_notice'] ) ? sanitize_key( wp_unslash( $_GET['af_adv_notice'] ) ) : '';
+		$key = isset( $_GET['af_adv_notice'] ) ? sanitize_key( wp_unslash( $_GET['af_adv_notice'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$map = array(
 			'audit_saved'    => array( 'success', __( 'Audit point saved.', 'autoloadfix' ) ),
 			'audit_failed'   => array( 'error', __( 'Audit point could not be saved.', 'autoloadfix' ) ),
