@@ -560,10 +560,10 @@ class AutoloadFix_Site_Scanner {
 
 		if ( in_array( $code, array( 'not_warming', 'unexpected_bypass', 'cache_control_private', 'no_header' ), true ) ) {
 			$steps[] = sprintf( __( 'Open %s and confirm page caching is enabled for public visitors.', 'autoloadfix' ), $ctx['cache'] );
-			$steps[] = sprintf( __( 'Review %s and confirm this URL path is not excluded unless it really needs to be: %s', 'autoloadfix' ), $ctx['exclude'], $path );
+			$steps[] = sprintf( __( 'Review %1$s and confirm this URL path is not excluded unless it really needs to be: %2$s', 'autoloadfix' ), $ctx['exclude'], $path );
 			$steps[] = sprintf( __( 'Clear the cache from %s, load the public page, then return here and click “Re-check this page”.', 'autoloadfix' ), $ctx['purge'] );
 		} elseif ( 'dynamic_hit' === $code ) {
-			$steps[] = sprintf( __( 'Open %s and confirm the dynamic path is excluded from shared page cache: %s', 'autoloadfix' ), $ctx['exclude'], $path );
+			$steps[] = sprintf( __( 'Open %1$s and confirm the dynamic path is excluded from shared page cache: %2$s', 'autoloadfix' ), $ctx['exclude'], $path );
 			$steps[] = __( 'For WooCommerce, verify Cart, Checkout, My Account, logged-in/customer-session requests, and personalized fragments are not shared as full-page cache.', 'autoloadfix' );
 			$steps[] = sprintf( __( 'Purge from %s, then use “Re-check this page”. A BYPASS/MISS can be correct for this dynamic page; a shared HIT should disappear.', 'autoloadfix' ), $ctx['purge'] );
 		} elseif ( 'stale' === $code ) {
