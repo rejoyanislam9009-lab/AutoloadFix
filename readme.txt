@@ -4,7 +4,7 @@ Tags: autoload, database, performance, site health, optimization
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 7.2
-Stable tag: 1.2.0
+Stable tag: 1.2.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,7 +14,7 @@ Audit WordPress autoloaded options, track growth, review cache layers, get optim
 
 AutoloadFix is a focused WordPress performance utility for reviewing autoloaded options safely and understanding the site's cache/optimization stack.
 
-Autoloaded options can be loaded on many WordPress requests. AutoloadFix helps administrators understand how much data is being autoloaded, which entries are largest, which plugin or theme may own an option, whether autoload growth is changing over time, and which cache layers are active.
+Autoloaded options can be loaded on many WordPress requests. AutoloadFix helps administrators understand how much data is being autoloaded, which entries are largest, which plugin or theme may own an option, whether autoload growth is changing over time, and which cache layers are present.
 
 AutoloadFix is conservative by design. It does not delete option values, does not automatically change unknown options, does not install third-party cache plugins, and protects WordPress-critical options from mutation.
 
@@ -26,28 +26,25 @@ AutoloadFix is conservative by design. It does not delete option values, does no
 * Likely plugin/theme ownership with confidence scoring.
 * Conservative assessment levels: Protected, Review, Candidate, and Ignored.
 * Per-option impact estimate as a percentage of total autoload data.
-* Watch list for options you want to monitor.
-* Ignore list for entries you do not want recommended.
+* Watch and ignore lists.
 * Custom protected option names.
 * WordPress-critical role/capability options are automatically protected, including prefixed user-roles options.
-* Snapshot-before-change workflow.
-* History and one-click restore.
+* Snapshot-before-change workflow with history and restore.
 * Read-only safe mode that blocks AutoloadFix autoload mutations.
-* Manual, daily, or weekly audit points.
-* Autoload growth alerts in the dashboard.
+* Manual, daily, or weekly audit points and growth alerts.
 * Cache & Optimization Advisor with server-aware recommendations.
-* Detection of full-page cache, persistent object cache, cache drop-ins, and asset optimization layers.
-* Warning when multiple recognized full-page cache plugins are active.
-* Manual front-end cache probe that stores only status, timing, and cache-related response headers.
+* Detection of page-cache-capable plugins, persistent object cache, cache drop-ins, asset-optimization capability, and public cache/CDN signals.
+* Warning when multiple page-cache-capable plugins may overlap.
+* Two-request anonymous front-end probe that can verify MISS-to-HIT/warm-cache behavior when supported headers are exposed.
+* Cache-status classification for HIT, MISS, BYPASS, STALE, and detected/unclassified responses.
 * Site-fit guidance that favors the current stable single-cache setup and does not force a plugin switch.
 * One-click purge integrations for supported active cache tools.
 * Exact WordPress menu paths for detected tools that require manual cache clearing.
 * Separate, explicitly confirmed persistent object-cache flush.
-* WooCommerce-aware cache guidance for Cart, Checkout, My Account, sessions, and personalized content.
+* WooCommerce-aware cache guidance.
 * Lightweight CSS trend visualization with no external chart library.
 * JSON and CSV diagnostic exports without option values.
 * WordPress Site Health test and Site Health Info fields.
-* Safe diagnostics for WordPress, PHP, database, object cache, and raw autoload-state distribution.
 * Multisite-aware active plugin detection.
 * WP-CLI tools: `wp autoloadfix status`, `wp autoloadfix top`, and `wp autoloadfix audit`.
 * No external account, ads, telemetry, or frontend assets.
@@ -58,13 +55,17 @@ The advisor distinguishes several cache layers instead of treating all caching a
 
 * Full-page cache plugins.
 * Persistent WordPress object cache.
-* CSS/JS asset optimization.
+* CSS/JS asset-optimization capability.
 * Front-end/CDN cache signals from public response headers.
 * `advanced-cache.php` and `object-cache.php` drop-ins.
 
-AutoloadFix can detect common cache/optimization plugins and show where their cache controls live. For integrations with a stable callable purge API, the administrator can purge from AutoloadFix and immediately run a new front-end probe. If no supported API is available, AutoloadFix shows the manual menu path instead of attempting an unsafe workaround.
+AutoloadFix can detect common cache/optimization plugins and show where their cache controls live. For integrations with a stable callable purge API, an administrator can purge from AutoloadFix and immediately run a two-request front-end verification. If no supported API is available, AutoloadFix shows the manual menu path instead of attempting an unsafe workaround.
 
-AutoloadFix does not install cache plugins automatically. When no recognized full-page cache is active it provides neutral site-fit guidance. On LiteSpeed/OpenLiteSpeed servers, LiteSpeed Cache may be suggested as a natural server-integrated option. On other servers, AutoloadFix may mention simple or advanced WordPress.org cache choices while also reminding administrators that their host may already provide server-level caching.
+The public probe makes two anonymous requests to the site's own home URL. When a supported cache status header is available, AutoloadFix classifies HIT, MISS, BYPASS, or STALE and can report a verified warm-cache HIT on the second request. It stores only status, timing, and selected response headers; page content is never stored.
+
+Asset optimization is reported as capability rather than assumed enabled state. For example, LiteSpeed Cache and several other cache plugins already contain CSS/JS optimization features, so AutoloadFix advises reviewing the existing plugin before installing another optimizer.
+
+AutoloadFix does not install cache plugins automatically. When no recognized full-page cache is active it provides neutral site-fit guidance. On LiteSpeed/OpenLiteSpeed servers, LiteSpeed Cache may be suggested as a natural server-integrated option.
 
 If WP Rocket is already installed, AutoloadFix can detect it and use its available purge function. AutoloadFix does not require, bundle, sell, or install WP Rocket.
 
@@ -76,7 +77,7 @@ When an administrator disables autoload for an option, AutoloadFix first stores 
 
 Ownership detection is heuristic. An option can still be required by custom code, a theme, an integration, a scheduled task, or an active workflow. Test important site paths after every change.
 
-Cache recommendations are also advisory. Hosting-level caches, CDNs, reverse proxies, logged-in behavior, custom application rules, and commerce sessions can change what the best setup is. AutoloadFix therefore avoids automatic plugin installation or destructive cache-file manipulation.
+Cache recommendations are advisory. Hosting-level caches, CDNs, reverse proxies, logged-in behavior, custom rules, and commerce sessions can change the best setup. AutoloadFix therefore avoids automatic plugin installation or destructive cache-file manipulation.
 
 == Installation ==
 
@@ -107,7 +108,11 @@ The advisor recognizes several common WordPress cache/optimization plugins, incl
 
 = What does “Purge supported caches & re-check” do? =
 
-It calls only supported purge APIs/hooks for active recognized integrations, stores which integrations were triggered, and then runs a new anonymous front-end probe. It does not delete plugin folders or edit third-party plugin settings.
+It calls only supported purge APIs/hooks for active recognized integrations, stores which integrations were triggered, and then runs a new two-request anonymous front-end verification. It does not delete plugin folders or edit third-party plugin settings.
+
+= Why does asset optimization say “capability”? =
+
+Some page-cache plugins also contain CSS/JS optimization features. AutoloadFix can identify that the capability exists, but it does not claim those features are enabled without a reliable integration-specific signal.
 
 = Why is object-cache flush a separate button? =
 
@@ -115,7 +120,7 @@ Persistent object cache is different from page cache. Flushing it can temporaril
 
 = Does the front-end probe store my page content? =
 
-No. It requests the public home URL and stores only the check time, HTTP status, response duration, and selected cache-related response headers. The page body is not stored.
+No. It requests the public home URL and stores only check time, HTTP status, response duration, cache classification, and selected cache-related response headers. The page body is not stored.
 
 = What does Read-only safe mode do? =
 
@@ -142,9 +147,18 @@ AutoloadFix recognizes network-active plugins when estimating ownership and dete
 5. Diagnostics and autoload-state breakdown.
 6. Monitoring and safety settings.
 7. Cache & Optimization Advisor with cache layers and site-fit recommendation.
-8. Detected cache integrations, purge guidance, and front-end response-header check.
+8. Detected cache integrations, purge guidance, and two-request warm-cache verification.
 
 == Changelog ==
+
+= 1.2.1 =
+* Added two-request warm-cache verification.
+* Added cache status classification for HIT, MISS, BYPASS, STALE, and detected/unclassified responses.
+* Added a Next Best Action card to reduce guesswork after each check.
+* Changed asset optimization reporting from assumed enabled state to detected capability.
+* Added integrated asset-optimization capability guidance for cache plugins such as LiteSpeed Cache.
+* Improved purge-and-recheck notices when the public probe fails after a successful purge.
+* Refined overlapping cache wording to avoid assuming every active plugin has page caching enabled.
 
 = 1.2.0 =
 * Added Cache & Optimization Advisor.
@@ -179,5 +193,5 @@ AutoloadFix recognizes network-active plugins when estimating ownership and dete
 
 == Upgrade Notice ==
 
-= 1.2.0 =
-Adds cache-stack detection, site-fit guidance, safe purge integrations, manual purge paths, WooCommerce-aware recommendations, and a purge-and-recheck workflow.
+= 1.2.1 =
+Improves cache diagnosis with two-request warm-cache verification, HIT/MISS classification, clearer asset capability reporting, and a Next Best Action guide.
