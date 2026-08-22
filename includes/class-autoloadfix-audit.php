@@ -47,6 +47,10 @@ class AutoloadFix_Audit {
 	/**
 	 * Add a weekly schedule.
 	 *
+	 * This filter can run during plugin activation, before WordPress permits
+	 * just-in-time translation loading, so the internal schedule label remains
+	 * a plain English identifier instead of triggering a text domain early.
+	 *
 	 * @param array<string,mixed> $schedules Schedules.
 	 * @return array<string,mixed>
 	 */
@@ -54,7 +58,7 @@ class AutoloadFix_Audit {
 		if ( ! isset( $schedules['autoloadfix_weekly'] ) ) {
 			$schedules['autoloadfix_weekly'] = array(
 				'interval' => WEEK_IN_SECONDS,
-				'display'  => __( 'Once Weekly (AutoloadFix)', 'autoloadfix' ),
+				'display'  => 'Once Weekly (AutoloadFix)',
 			);
 		}
 		return $schedules;
