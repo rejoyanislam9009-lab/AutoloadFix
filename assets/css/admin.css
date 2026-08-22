@@ -1,0 +1,291 @@
+.autoloadfix-wrap {
+	max-width: 1440px;
+}
+
+.autoloadfix-header {
+	display: flex;
+	justify-content: space-between;
+	gap: 24px;
+	align-items: flex-start;
+	margin: 24px 0 12px;
+	padding: 28px;
+	border: 1px solid #dcdcde;
+	border-radius: 16px;
+	background: #fff;
+}
+
+.autoloadfix-header h1 {
+	font-size: 32px;
+	line-height: 1.1;
+	margin: 4px 0 8px;
+}
+
+.autoloadfix-header p {
+	font-size: 15px;
+	max-width: 760px;
+	margin: 0;
+	color: #50575e;
+}
+
+.autoloadfix-eyebrow {
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: .12em;
+	color: #646970;
+}
+
+.autoloadfix-version {
+	font-weight: 700;
+	background: #f0f6fc;
+	border-radius: 999px;
+	padding: 7px 12px;
+}
+
+.autoloadfix-tabs {
+	margin-bottom: 20px;
+}
+
+.autoloadfix-score-card {
+	display: flex;
+	gap: 24px;
+	align-items: center;
+	padding: 24px;
+	background: #101517;
+	color: #fff;
+	border-radius: 16px;
+	margin: 20px 0;
+}
+
+.autoloadfix-score-ring {
+	width: 126px;
+	height: 126px;
+	border: 8px solid rgba(255, 255, 255, .16);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-direction: column;
+	flex: 0 0 auto;
+}
+
+.autoloadfix-score-ring strong {
+	font-size: 38px;
+	line-height: 1;
+}
+
+.autoloadfix-score-ring span {
+	opacity: .7;
+}
+
+.autoloadfix-score-copy h2 {
+	font-size: 24px;
+	color: #fff;
+	margin: 8px 0;
+}
+
+.autoloadfix-score-copy p {
+	max-width: 760px;
+	color: #c3c4c7;
+	margin: 0;
+}
+
+.autoloadfix-status {
+	display: inline-flex;
+	border-radius: 999px;
+	padding: 5px 9px;
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.autoloadfix-status-good {
+	background: #d7f2df;
+	color: #0a5c25;
+}
+
+.autoloadfix-status-warn {
+	background: #fff4c2;
+	color: #6b5200;
+}
+
+.autoloadfix-status-bad {
+	background: #fce2e2;
+	color: #8a1f11;
+}
+
+.autoloadfix-grid {
+	display: grid;
+	gap: 16px;
+}
+
+.autoloadfix-metrics {
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	margin-bottom: 20px;
+}
+
+.autoloadfix-metric {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 14px;
+	padding: 20px;
+}
+
+.autoloadfix-metric span,
+.autoloadfix-metric small {
+	display: block;
+	color: #646970;
+}
+
+.autoloadfix-metric strong {
+	display: block;
+	font-size: 28px;
+	line-height: 1.15;
+	margin: 8px 0;
+}
+
+.autoloadfix-panel {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 14px;
+	padding: 20px;
+	margin: 20px 0;
+}
+
+.autoloadfix-panel-head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+	margin-bottom: 16px;
+}
+
+.autoloadfix-panel-head h2,
+.autoloadfix-settings-panel h2 {
+	margin: 0 0 6px;
+	font-size: 20px;
+}
+
+.autoloadfix-panel-head p {
+	margin: 0;
+	color: #646970;
+}
+
+.autoloadfix-table-wrap {
+	overflow: auto;
+}
+
+.autoloadfix-table code {
+	font-size: 12px;
+	word-break: break-all;
+}
+
+.autoloadfix-table td {
+	vertical-align: top;
+}
+
+.autoloadfix-muted {
+	margin-top: 5px;
+	color: #787c82;
+	font-size: 12px;
+}
+
+.autoloadfix-reason {
+	max-width: 420px;
+	margin-top: 6px;
+	color: #50575e;
+	font-size: 12px;
+	line-height: 1.45;
+}
+
+.autoloadfix-pill {
+	display: inline-flex;
+	padding: 4px 8px;
+	border-radius: 999px;
+	font-weight: 700;
+	font-size: 11px;
+}
+
+.autoloadfix-pill-protected {
+	background: #f0f0f1;
+	color: #3c434a;
+}
+
+.autoloadfix-pill-candidate {
+	background: #fff1c8;
+	color: #704f00;
+}
+
+.autoloadfix-pill-review {
+	background: #e7f3ff;
+	color: #0a4b78;
+}
+
+.autoloadfix-inline-form {
+	margin: 0;
+}
+
+.autoloadfix-safety-note {
+	padding: 16px 18px;
+	border-left: 4px solid #dba617;
+	background: #fff9e5;
+	margin: 20px 0;
+}
+
+.autoloadfix-settings-panel {
+	max-width: 920px;
+}
+
+@media (max-width: 1100px) {
+	.autoloadfix-metrics {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 782px) {
+	.autoloadfix-header {
+		padding: 20px;
+	}
+
+	.autoloadfix-header,
+	.autoloadfix-score-card,
+	.autoloadfix-panel-head {
+		flex-direction: column;
+	}
+
+	.autoloadfix-score-ring {
+		width: 96px;
+		height: 96px;
+	}
+
+	.autoloadfix-score-ring strong {
+		font-size: 30px;
+	}
+
+	.autoloadfix-metrics {
+		grid-template-columns: 1fr;
+	}
+
+	.autoloadfix-table thead {
+		display: none;
+	}
+
+	.autoloadfix-table tr {
+		display: block;
+		border-bottom: 1px solid #dcdcde;
+		padding: 10px 0;
+	}
+
+	.autoloadfix-table td {
+		display: block;
+		padding: 8px 10px;
+		border: 0;
+	}
+
+	.autoloadfix-table td::before {
+		content: attr(data-label);
+		display: block;
+		font-size: 11px;
+		font-weight: 700;
+		color: #646970;
+		margin-bottom: 4px;
+	}
+}
