@@ -1,34 +1,32 @@
 # AutoloadFix
 
-AutoloadFix is a WordPress performance utility for auditing autoloaded options, reviewing oversized entries, changing autoload behavior cautiously, and restoring changes from snapshots.
+AutoloadFix is a WordPress performance utility for auditing autoloaded options, tracking growth, reviewing likely ownership, cautiously changing autoload behavior, and restoring changes from snapshots.
 
 ## Requirements
 
 - WordPress 6.6+
 - PHP 7.2+
 
-## Core features
+## Version 1.1.0 highlights
 
-- Autoload health score and total autoload size
-- Largest autoloaded option scanner
-- Conservative plugin/theme ownership heuristics
-- Protected WordPress-critical options
-- Review classification for large and inactive-plugin entries
-- Snapshot-before-change workflow
-- Restore history with before/after totals
-- WordPress Site Health integration
-- JSON diagnostic export
-- No external API, account, telemetry, ads, or frontend assets
+- Searchable/filterable largest-option review workspace
+- Ownership confidence and per-option impact percentages
+- Watch and ignore lists
+- Read-only safe mode
+- Custom protected options and automatic protection for prefixed WordPress user-role options
+- Manual/daily/weekly audit history with growth alerts
+- Snapshot-before-change and restore history
+- JSON and CSV metadata exports
+- Site Health and diagnostics integration
+- Multisite-aware plugin ownership detection
+- WP-CLI status/top/audit commands
+- No external service, account, telemetry, or frontend assets
 
-## Safety model
+## Safety
 
-AutoloadFix does not delete option values and does not automatically change unknown options. Known WordPress-critical options are locked. Every administrator-triggered autoload change is preceded by a snapshot, and failed changes discard their temporary snapshot so history reflects completed operations.
+AutoloadFix never deletes option values and never automatically mutates unknown options. Option values are not displayed or exported. Administrator-triggered autoload changes require a successful snapshot first and are verified after WordPress applies the change.
 
-Ownership detection is heuristic. An option can still be required by custom code, a theme, an integration, a scheduled task, or an active workflow, so important site paths should be tested after changes.
-
-## Development source
-
-This repository contains the human-readable source shipped in the plugin. There is no generated/minified-only application source and no external build step is required for version 1.0.0.
+Ownership detection is heuristic, so administrators should test important frontend and admin workflows after any autoload change.
 
 ## License
 
