@@ -80,11 +80,11 @@ jobs:
             --exclude='dist' \
             ./ dist/autoloadfix/
           cd dist
-          zip -r autoloadfix-1.3.0.zip autoloadfix
+          zip -r autoloadfix-1.4.0.zip autoloadfix
 
       - name: Upload installable ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: autoloadfix-1.3.0
-          path: dist/autoloadfix-1.3.0.zip
+          name: autoloadfix-1.4.0
+          path: dist/autoloadfix-1.4.0.zip
           if-no-files-found: error
