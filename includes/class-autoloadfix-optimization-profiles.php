@@ -14,7 +14,6 @@ class AutoloadFix_Optimization_Profiles {
 	public function __construct() {
 		add_action( 'admin_menu', array( $this, 'register_submenu' ), 40 );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ), 40 );
-		add_action( 'admin_init', array( $this, 'normalize_dynamic_unknown_results' ), 20 );
 		add_action( 'admin_post_autoloadfix_download_optimization_profile', array( $this, 'handle_download' ) );
 	}
 
@@ -41,64 +40,6 @@ class AutoloadFix_Optimization_Profiles {
 		wp_enqueue_style( 'autoloadfix-optimization-profiles', AUTOLOADFIX_URL . 'assets/css/optimization-profiles.css', array( 'autoloadfix-admin' ), AUTOLOADFIX_VERSION );
 	}
 
-	/**
-	 * Dynamic commerce pages with no explicit cache header are not proven healthy.
-	 * Promote only previously-good UNKNOWN/PRESENT results to an informational review.
-	 */
-	public function normalize_dynamic_unknown_results() {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			return;
-		}
-
-		$results = get_option( 'autoloadfix_site_scan_results', array() );
-		if ( ! is_array( $results ) || ! $results ) {
-			return;
-		}
-
-		$changed = false;
-		foreach ( $results as $key => $result ) {
-			if ( empty( $result['dynamic'] ) || 'good' !== ( isset( $result['severity'] ) ? $result['severity'] : 'good' ) ) {
-				continue;
-			}
-
-			$cache_state = isset( $result['cache_state'] ) ? sanitize_key( $result['cache_state'] ) : 'unknown';
-			if ( ! in_array( $cache_state, array( 'unknown', 'present' ), true ) ) {
-				continue;
-			}
-
-			$issues = isset( $result['issues'] ) && is_array( $result['issues'] ) ? $result['issues'] : array();
-			$exists = false;
-			foreach ( $issues as $issue ) {
-				if ( isset( $issue['code'] ) && 'dynamic_unverified' === $issue['code'] ) {
-					$exists = true;
-					break;
-				}
-			}
-			if ( $exists ) {
-				continue;
-			}
-
-			$issues[] = array(
-				'severity' => 'info',
-				'code'     => 'dynamic_unverified',
-				'title'    => __( 'Dynamic cache status could not be verified', 'autoloadfix' ),
-				'message'  => __( 'This dynamic commerce page is reachable, but the response did not expose a clear cache HIT/MISS/BYPASS signal. A shared full-page HIT would be unsafe; UNKNOWN alone is not proof of a problem or proof of a correct bypass.', 'autoloadfix' ),
-				'steps'    => array(
-					__( 'Confirm the active cache plugin treats this page and customer-session traffic as dynamic.', 'autoloadfix' ),
-					__( 'Purge the page cache, open the page logged out, then re-check it in AutoloadFix.', 'autoloadfix' ),
-					__( 'Do not force this page into shared full-page cache just to obtain a HIT.', 'autoloadfix' ),
-				),
-			);
-			$results[ $key ]['issues']   = $issues;
-			$results[ $key ]['severity'] = 'info';
-			$changed                      = true;
-		}
-
-		if ( $changed ) {
-			update_option( 'autoloadfix_site_scan_results', $results, false );
-		}
-	}
-
 	/** Render profile page. */
 	public function render_page() {
 		$this->require_manage_options();
@@ -110,7 +51,7 @@ class AutoloadFix_Optimization_Profiles {
 		$notice         = isset( $_GET['af_profile_notice'] ) ? sanitize_key( wp_unslash( $_GET['af_profile_notice'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 		if ( 'no_changes' === $notice ) {
-			echo '<div class="notice notice-info is-dismissible"><p>' . esc_html__( 'No safe importable setting change is currently available. Review the manual-only findings instead.', 'autoloadfix' ) . '</p></div>';
+			echo '<div class="notice notice-info is-dismissible"><p>' . esc_html__( 'No safe importable setting change is currently available. This can be a good result; do not import a configuration file unless a scanner finding actually requires one.', 'autoloadfix' ) . '</p></div>';
 		} elseif ( 'scan_incomplete' === $notice ) {
 			echo '<div class="notice notice-warning is-dismissible"><p>' . esc_html__( 'Complete the Site Problem Scanner before generating a site-specific import profile.', 'autoloadfix' ) . '</p></div>';
 		}
@@ -120,7 +61,7 @@ class AutoloadFix_Optimization_Profiles {
 				<div>
 					<div class="autoloadfix-eyebrow"><?php esc_html_e( 'AUTOLOADFIX GUIDED CONFIGURATION', 'autoloadfix' ); ?></div>
 					<h1><?php esc_html_e( 'Optimization Profiles', 'autoloadfix' ); ?></h1>
-					<p><?php esc_html_e( 'Turn verified scanner findings into a conservative, site-specific import file when the detected cache plugin has a known native import format.', 'autoloadfix' ); ?></p>
+					<p><?php esc_html_e( 'Turn verified scanner findings into a conservative, site-specific import file only when the detected cache plugin has a known native import format and a high-confidence setting change is justified.', 'autoloadfix' ); ?></p>
 				</div>
 				<div class="autoloadfix-version">v<?php echo esc_html( AUTOLOADFIX_VERSION ); ?></div>
 			</div>
@@ -152,7 +93,7 @@ class AutoloadFix_Optimization_Profiles {
 			<section class="autoloadfix-panel">
 				<div class="autoloadfix-panel-head"><div><h2><?php esc_html_e( 'What the profile would change', 'autoloadfix' ); ?></h2><p><?php esc_html_e( 'Only high-confidence, issue-linked changes are eligible. AutoloadFix does not turn on aggressive CSS/JS optimization merely because a plugin supports it.', 'autoloadfix' ); ?></p></div></div>
 				<?php if ( empty( $recommendation['changes'] ) ) : ?>
-					<p><?php esc_html_e( 'No scanner finding currently maps to a safe automatic import change for this cache plugin.', 'autoloadfix' ); ?></p>
+					<p><?php esc_html_e( 'No scanner finding currently maps to a safe automatic import change for this cache plugin. A zero here means AutoloadFix is intentionally leaving the cache configuration unchanged.', 'autoloadfix' ); ?></p>
 				<?php else : ?>
 					<div class="autoloadfix-profile-table-wrap"><table class="widefat striped autoloadfix-profile-table"><thead><tr><th><?php esc_html_e( 'Setting', 'autoloadfix' ); ?></th><th><?php esc_html_e( 'Current', 'autoloadfix' ); ?></th><th><?php esc_html_e( 'Recommended', 'autoloadfix' ); ?></th><th><?php esc_html_e( 'Why', 'autoloadfix' ); ?></th></tr></thead><tbody>
 					<?php foreach ( $recommendation['changes'] as $change ) : ?>
@@ -163,20 +104,42 @@ class AutoloadFix_Optimization_Profiles {
 			</section>
 
 			<section class="autoloadfix-panel">
-				<div class="autoloadfix-panel-head"><div><h2><?php esc_html_e( 'Import & verify workflow', 'autoloadfix' ); ?></h2><p><?php esc_html_e( 'The generated file is never applied silently. You remain in control of the third-party plugin settings.', 'autoloadfix' ); ?></p></div></div>
-				<ol class="autoloadfix-profile-steps">
-					<li><?php echo esc_html( sprintf( __( 'Download the AutoloadFix profile after the site scan reaches 100%%.', 'autoloadfix' ) ) ); ?></li>
-					<li><?php echo esc_html( sprintf( __( 'Open %s.', 'autoloadfix' ), $adapter['import_path'] ) ); ?></li>
-					<li><?php esc_html_e( 'Import the file, review the cache plugin confirmation, then purge its cache.', 'autoloadfix' ); ?></li>
-					<li><?php esc_html_e( 'Return to Site Problem Scanner and use Re-check problem pages. AutoloadFix will test the affected URLs again instead of assuming the import worked.', 'autoloadfix' ); ?></li>
-				</ol>
-				<?php if ( 'wp_rocket' === $adapter['id'] ) : ?><p class="description"><?php esc_html_e( 'WP Rocket profiles are site-specific JSON settings files. Keep the downloaded file private because it is based on this installation’s current WP Rocket settings.', 'autoloadfix' ); ?></p><?php endif; ?>
-				<?php if ( 'litespeed' === $adapter['id'] ) : ?><p class="description"><?php esc_html_e( 'LiteSpeed Cache profiles use its native .data import format. The generated profile contains only the version marker and the settings AutoloadFix intentionally changes; LiteSpeed imports those keys into the existing configuration.', 'autoloadfix' ); ?></p><?php endif; ?>
+				<?php if ( $ready ) : ?>
+					<div class="autoloadfix-panel-head"><div><h2><?php esc_html_e( 'Import & verify workflow', 'autoloadfix' ); ?></h2><p><?php esc_html_e( 'The generated file is never applied silently. You remain in control of the third-party plugin settings.', 'autoloadfix' ); ?></p></div></div>
+					<ol class="autoloadfix-profile-steps">
+						<li><?php esc_html_e( 'Download the AutoloadFix import profile.', 'autoloadfix' ); ?></li>
+						<li><?php echo esc_html( sprintf( __( 'Open %s.', 'autoloadfix' ), $adapter['import_path'] ) ); ?></li>
+						<li><?php esc_html_e( 'Import the file, review the cache plugin confirmation, then purge its cache.', 'autoloadfix' ); ?></li>
+						<li><?php esc_html_e( 'Return to Site Problem Scanner and use Re-check problem pages. AutoloadFix will test the affected URLs again instead of assuming the import worked.', 'autoloadfix' ); ?></li>
+					</ol>
+					<?php if ( 'wp_rocket' === $adapter['id'] ) : ?><p class="description"><?php esc_html_e( 'WP Rocket profiles are site-specific JSON settings files. Keep the downloaded file private because it is based on this installation’s current WP Rocket settings.', 'autoloadfix' ); ?></p><?php endif; ?>
+					<?php if ( 'litespeed' === $adapter['id'] ) : ?><p class="description"><?php esc_html_e( 'LiteSpeed Cache profiles use its native .data import format. The generated profile contains only the version marker and the settings AutoloadFix intentionally changes; LiteSpeed imports those keys into the existing configuration.', 'autoloadfix' ); ?></p><?php endif; ?>
+				<?php elseif ( ! $scan['complete'] ) : ?>
+					<div class="autoloadfix-panel-head"><div><h2><?php esc_html_e( 'Finish diagnosis before configuration', 'autoloadfix' ); ?></h2><p><?php esc_html_e( 'A partial scan is not enough evidence for a site-specific import file.', 'autoloadfix' ); ?></p></div></div>
+					<p><?php esc_html_e( 'Continue the Site Problem Scanner until it reaches 100%. AutoloadFix will then decide whether an import profile is actually necessary.', 'autoloadfix' ); ?></p>
+				<?php elseif ( ! $adapter['export_supported'] ) : ?>
+					<div class="autoloadfix-panel-head"><div><h2><?php esc_html_e( 'Guided configuration only', 'autoloadfix' ); ?></h2><p><?php esc_html_e( 'The detected tool does not have a sufficiently stable native import adapter in AutoloadFix.', 'autoloadfix' ); ?></p></div></div>
+					<p><?php esc_html_e( 'Use the exact scanner guidance instead of importing a guessed configuration file.', 'autoloadfix' ); ?></p>
+				<?php else : ?>
+					<div class="autoloadfix-panel-head"><div><h2><?php esc_html_e( 'No import is needed right now', 'autoloadfix' ); ?></h2><p><?php esc_html_e( 'The cache plugin supports imports, but this scan did not find a high-confidence setting change that should be applied automatically.', 'autoloadfix' ); ?></p></div></div>
+					<ol class="autoloadfix-profile-steps">
+						<li><?php esc_html_e( 'Do not import a profile merely to change settings; keeping a working cache configuration unchanged is the safer outcome.', 'autoloadfix' ); ?></li>
+						<li><?php esc_html_e( 'Address only the actionable manual findings below.', 'autoloadfix' ); ?></li>
+						<li><?php esc_html_e( 'Re-check those pages. If a later scan confirms a shared cache HIT on a dynamic page, AutoloadFix can then generate the exact supported exclusion profile.', 'autoloadfix' ); ?></li>
+					</ol>
+				<?php endif; ?>
 			</section>
 
 			<section class="autoloadfix-panel">
-				<div class="autoloadfix-panel-head"><div><h2><?php esc_html_e( 'Findings that still need manual work', 'autoloadfix' ); ?></h2><p><?php esc_html_e( 'A settings import cannot safely repair every website problem. Route errors, server latency, unknown cache headers, and application problems remain guided/manual findings.', 'autoloadfix' ); ?></p></div></div>
-				<?php $this->render_manual_findings( $recommendation['manual'] ); ?>
+				<div class="autoloadfix-panel-head"><div><h2><?php esc_html_e( 'Findings outside the import profile', 'autoloadfix' ); ?></h2><p><?php esc_html_e( 'Not every diagnostic belongs in a settings file. Actionable server/application findings stay manual, while uncertain cache evidence stays informational until a stronger signal is available.', 'autoloadfix' ); ?></p></div></div>
+				<div class="autoloadfix-findings-group">
+					<h3><?php echo esc_html( sprintf( __( 'Manual actions (%d)', 'autoloadfix' ), count( $recommendation['manual_action'] ) ) ); ?></h3>
+					<?php $this->render_findings( $recommendation['manual_action'], __( 'No actionable manual finding is currently stored.', 'autoloadfix' ) ); ?>
+				</div>
+				<div class="autoloadfix-findings-group">
+					<h3><?php echo esc_html( sprintf( __( 'Informational checks (%d)', 'autoloadfix' ), count( $recommendation['manual_info'] ) ) ); ?></h3>
+					<?php $this->render_findings( $recommendation['manual_info'], __( 'No informational-only cache check is currently stored.', 'autoloadfix' ) ); ?>
+				</div>
 			</section>
 		</div>
 		<?php
@@ -261,14 +224,19 @@ class AutoloadFix_Optimization_Profiles {
 	 */
 	private function build_recommendation( $adapter, $results ) {
 		$dynamic_hit_paths = array();
-		$manual            = array();
+		$manual_action     = array();
+		$manual_info       = array();
 
 		foreach ( $results as $result ) {
-			$issues = isset( $result['issues'] ) && is_array( $result['issues'] ) ? $result['issues'] : array();
+			$issues                 = isset( $result['issues'] ) && is_array( $result['issues'] ) ? $result['issues'] : array();
+			$has_dynamic_hit        = false;
+			$has_dynamic_unverified = false;
+
 			foreach ( $issues as $issue ) {
 				$code = isset( $issue['code'] ) ? sanitize_key( $issue['code'] ) : '';
 				if ( 'dynamic_hit' === $code && ! empty( $result['url'] ) ) {
-					$path = wp_parse_url( $result['url'], PHP_URL_PATH );
+					$has_dynamic_hit = true;
+					$path            = wp_parse_url( $result['url'], PHP_URL_PATH );
 					if ( $path ) {
 						$dynamic_hit_paths[] = $this->normalize_path( $path );
 					}
@@ -277,11 +245,32 @@ class AutoloadFix_Optimization_Profiles {
 				if ( 'healthy' === $code ) {
 					continue;
 				}
-				$manual[] = array(
+				if ( 'dynamic_unverified' === $code ) {
+					$has_dynamic_unverified = true;
+				}
+
+				$item = array(
 					'page'     => isset( $result['title'] ) ? sanitize_text_field( $result['title'] ) : __( 'Page', 'autoloadfix' ),
 					'url'      => isset( $result['url'] ) ? esc_url_raw( $result['url'] ) : '',
 					'severity' => isset( $issue['severity'] ) ? sanitize_key( $issue['severity'] ) : 'info',
 					'title'    => isset( $issue['title'] ) ? sanitize_text_field( $issue['title'] ) : __( 'Review finding', 'autoloadfix' ),
+					'detail'   => isset( $issue['message'] ) ? sanitize_text_field( $issue['message'] ) : '',
+				);
+				if ( in_array( $item['severity'], array( 'review', 'critical' ), true ) ) {
+					$manual_action[] = $item;
+				} else {
+					$manual_info[] = $item;
+				}
+			}
+
+			$cache_state = isset( $result['cache_state'] ) ? sanitize_key( $result['cache_state'] ) : 'unknown';
+			if ( ! $has_dynamic_hit && ! $has_dynamic_unverified && ! empty( $result['dynamic'] ) && in_array( $cache_state, array( 'unknown', 'present' ), true ) ) {
+				$manual_info[] = array(
+					'page'     => isset( $result['title'] ) ? sanitize_text_field( $result['title'] ) : __( 'Dynamic page', 'autoloadfix' ),
+					'url'      => isset( $result['url'] ) ? esc_url_raw( $result['url'] ) : '',
+					'severity' => 'info',
+					'title'    => __( 'Dynamic cache status is not proven', 'autoloadfix' ),
+					'detail'   => __( 'No shared cache HIT was detected, but the response also did not expose a definitive BYPASS/MISS signal. UNKNOWN alone does not justify changing cache settings.', 'autoloadfix' ),
 				);
 			}
 		}
@@ -298,7 +287,7 @@ class AutoloadFix_Optimization_Profiles {
 			$merged   = array_values( array_unique( array_merge( $current, $dynamic_hit_paths ) ) );
 			if ( $merged !== $current ) {
 				$settings['cache_reject_uri'] = $merged;
-				$changes[] = array(
+				$changes[]                    = array(
 					'setting'     => 'cache_reject_uri',
 					'current'     => $current ? implode( ', ', $current ) : __( 'No matching explicit exclusion', 'autoloadfix' ),
 					'recommended' => implode( ', ', $merged ),
@@ -323,9 +312,10 @@ class AutoloadFix_Optimization_Profiles {
 		}
 
 		return array(
-			'changes' => $changes,
-			'payload' => $payload,
-			'manual'  => $this->unique_manual_findings( $manual ),
+			'changes'       => $changes,
+			'payload'       => $payload,
+			'manual_action' => $this->unique_findings( $manual_action ),
+			'manual_info'   => $this->unique_findings( $manual_info ),
 		);
 	}
 
@@ -421,23 +411,35 @@ class AutoloadFix_Optimization_Profiles {
 			return __( 'A profile based on a partial crawl could miss important dynamic or broken pages. Finish the safe batches first.', 'autoloadfix' );
 		}
 		if ( empty( $recommendation['changes'] ) ) {
-			return __( 'The scanner may still have manual findings, but none currently justify an automatic cache-setting mutation.', 'autoloadfix' );
+			$count = count( $recommendation['manual_action'] );
+			if ( $count > 0 ) {
+				return sprintf( _n( 'No import change is justified. Resolve the %d actionable finding manually and re-check it; informational UNKNOWN cache states do not justify a cache mutation.', 'No import change is justified. Resolve the %d actionable findings manually and re-check them; informational UNKNOWN cache states do not justify a cache mutation.', $count, 'autoloadfix' ), $count );
+			}
+			return __( 'The scan found no high-confidence cache setting change. This is a valid result; leave the working cache configuration unchanged rather than importing an unnecessary profile.', 'autoloadfix' );
 		}
 		return __( 'Download the profile, import it in the detected cache plugin, purge cache, then re-check the affected pages in AutoloadFix.', 'autoloadfix' );
 	}
 
 	/**
-	 * @param array<int,array<string,string>> $items Manual findings.
+	 * @param array<int,array<string,string>> $items Findings.
+	 * @param string                          $empty_message Empty-state copy.
 	 */
-	private function render_manual_findings( $items ) {
+	private function render_findings( $items, $empty_message ) {
 		if ( ! $items ) {
-			echo '<p>' . esc_html__( 'No manual-only finding is currently stored.', 'autoloadfix' ) . '</p>';
+			echo '<p class="description">' . esc_html( $empty_message ) . '</p>';
 			return;
 		}
 		echo '<div class="autoloadfix-manual-findings">';
 		foreach ( array_slice( $items, 0, 30 ) as $item ) {
 			?>
-			<div class="autoloadfix-manual-finding is-<?php echo esc_attr( $item['severity'] ); ?>"><div><strong><?php echo esc_html( $item['title'] ); ?></strong><span><?php echo esc_html( $item['page'] ); ?></span></div><?php if ( $item['url'] ) : ?><a href="<?php echo esc_url( $item['url'] ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Open page', 'autoloadfix' ); ?></a><?php endif; ?></div>
+			<div class="autoloadfix-manual-finding is-<?php echo esc_attr( $item['severity'] ); ?>">
+				<div>
+					<strong><?php echo esc_html( $item['title'] ); ?></strong>
+					<span><?php echo esc_html( $item['page'] ); ?></span>
+					<?php if ( ! empty( $item['detail'] ) ) : ?><p><?php echo esc_html( $item['detail'] ); ?></p><?php endif; ?>
+				</div>
+				<?php if ( $item['url'] ) : ?><a href="<?php echo esc_url( $item['url'] ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Open page', 'autoloadfix' ); ?></a><?php endif; ?>
+			</div>
 			<?php
 		}
 		echo '</div>';
@@ -447,7 +449,7 @@ class AutoloadFix_Optimization_Profiles {
 	 * @param array<int,array<string,string>> $items Items.
 	 * @return array<int,array<string,string>>
 	 */
-	private function unique_manual_findings( $items ) {
+	private function unique_findings( $items ) {
 		$out  = array();
 		$seen = array();
 		foreach ( $items as $item ) {
