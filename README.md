@@ -19,8 +19,12 @@ AutoloadFix is a WordPress performance utility for auditing autoloaded options, 
 - Aggressive CSS/JS, delay, combine, image, object-cache, or crawler settings are not enabled merely because they exist
 - Current/recommended/reason diff before download
 - Exact third-party import path plus purge and re-check instructions
-- Slow responses, 4xx/5xx, redirects, unknown cache status, and other non-deterministic findings remain manual instead of being falsely “fixed” by a settings file
-- Dynamic WooCommerce pages with UNKNOWN/PRESENT cache status are now treated as unverified rather than automatically healthy
+- A zero-change result is treated as a valid outcome; AutoloadFix no longer presents an import workflow when no profile is needed
+- Actionable manual findings are separated from informational cache-evidence checks
+- Dynamic commerce UNKNOWN/PRESENT cache states are informational evidence gaps, not automatic configuration failures
+- LiteSpeed scanner probes now recognize `X-LiteSpeed-Cache-Control: no-cache/private` as a bypass signal inside AutoloadFix diagnostics without modifying the site's real response headers
+- Pre-release dynamic UNKNOWN results that were promoted to actionable-looking Info rows are normalized back to their real underlying severity
+- Slow responses, 4xx/5xx, redirects, unknown cache status, and other non-deterministic findings are never falsely “fixed” by a settings file
 - No automatic third-party import, no external configuration service, and no profile upload to AutoloadFix
 
 ## Safety
