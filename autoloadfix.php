@@ -29,6 +29,7 @@ require_once AUTOLOADFIX_PATH . 'includes/trait-autoloadfix-advanced-render.php'
 require_once AUTOLOADFIX_PATH . 'includes/class-autoloadfix-advanced-admin.php';
 require_once AUTOLOADFIX_PATH . 'includes/class-autoloadfix-cache-advisor.php';
 require_once AUTOLOADFIX_PATH . 'includes/class-autoloadfix-site-scanner.php';
+require_once AUTOLOADFIX_PATH . 'includes/class-autoloadfix-scanner-refinements.php';
 require_once AUTOLOADFIX_PATH . 'includes/class-autoloadfix-optimization-profiles.php';
 require_once AUTOLOADFIX_PATH . 'includes/class-autoloadfix-site-health.php';
 require_once AUTOLOADFIX_PATH . 'includes/class-autoloadfix-cli.php';
