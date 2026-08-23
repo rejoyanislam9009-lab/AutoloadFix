@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       AutoloadFix
  * Plugin URI:        https://github.com/rejoyanislam9009-lab/AutoloadFix
- * Description:       Audit autoloaded options, track growth, review cache layers, cautiously optimize WordPress, and restore autoload changes from snapshots.
- * Version:           1.2.1
+ * Description:       Audit autoloaded options, diagnose cache layers and page-specific performance problems, verify fixes, and restore autoload changes from snapshots.
+ * Version:           1.3.0
  * Requires at least: 6.6
  * Requires PHP:      7.2
  * Author:            Rejoyan Islam
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'AUTOLOADFIX_VERSION', '1.2.1' );
+define( 'AUTOLOADFIX_VERSION', '1.3.0' );
 define( 'AUTOLOADFIX_FILE', __FILE__ );
 define( 'AUTOLOADFIX_PATH', plugin_dir_path( __FILE__ ) );
 define( 'AUTOLOADFIX_URL', plugin_dir_url( __FILE__ ) );
@@ -28,6 +28,7 @@ require_once AUTOLOADFIX_PATH . 'includes/class-autoloadfix-admin.php';
 require_once AUTOLOADFIX_PATH . 'includes/trait-autoloadfix-advanced-render.php';
 require_once AUTOLOADFIX_PATH . 'includes/class-autoloadfix-advanced-admin.php';
 require_once AUTOLOADFIX_PATH . 'includes/class-autoloadfix-cache-advisor.php';
+require_once AUTOLOADFIX_PATH . 'includes/class-autoloadfix-site-scanner.php';
 require_once AUTOLOADFIX_PATH . 'includes/class-autoloadfix-site-health.php';
 require_once AUTOLOADFIX_PATH . 'includes/class-autoloadfix-cli.php';
 require_once AUTOLOADFIX_PATH . 'includes/class-autoloadfix-plugin.php';

@@ -1,45 +1,41 @@
 # AutoloadFix
 
-AutoloadFix is a WordPress performance utility for auditing autoloaded options, tracking growth, reviewing likely ownership, understanding cache layers, cautiously changing autoload behavior, and restoring changes from snapshots.
+AutoloadFix is a WordPress performance utility for auditing autoloaded options, tracking growth, understanding cache layers, diagnosing page-specific problems, verifying fixes, and restoring autoload changes from snapshots.
 
 ## Requirements
 
 - WordPress 6.6+
 - PHP 7.2+
 
-## Version 1.2.1 highlights
+## Version 1.3.0 highlights
 
-- Searchable/filterable largest-option review workspace
-- Ownership confidence and per-option impact percentages
-- Watch and ignore lists
-- Read-only safe mode
-- Custom protected options and automatic protection for prefixed WordPress user-role options
-- Manual/daily/weekly audit history with growth alerts
-- Snapshot-before-change and restore history
-- Cache & Optimization Advisor
-- Detection of page-cache-capable plugins, persistent object cache, cache drop-ins, and asset-optimization capability
-- Warning for potentially overlapping page-cache plugins without assuming every feature is enabled
-- Server-aware cache-plugin guidance without automatic installation
-- Two-request public-home cache verification with HIT/MISS/BYPASS/STALE classification when supported headers are exposed
-- Warm-cache HIT verification and a Next Best Action card
-- Safe one-click purge for supported active integrations plus manual purge paths for others
-- Separate confirmed persistent object-cache flush
-- WooCommerce-aware cache guidance
-- JSON and CSV metadata exports
-- Site Health and diagnostics integration
-- Multisite-aware plugin ownership/cache detection
-- WP-CLI status/top/audit commands
-- No external account, ads, telemetry, or frontend assets
+- Everything from the 1.2.1 Cache & Optimization Advisor
+- New Site Problem Scanner for page-by-page diagnostics
+- Safe batch scanning of up to 300 public WordPress URLs per run
+- Home, front page, posts page, published public post types, and key WooCommerce pages
+- HTTP 4xx/5xx and redirect detection
+- Server-side response-time checks
+- Cache HIT/MISS/BYPASS/STALE classification when supported headers are exposed
+- Repeated anonymous requests to verify whether public pages warm to cache HIT
+- WooCommerce dynamic-page safety checks so Cart, Checkout, and My Account are not treated like ordinary cacheable pages
+- Restrictive Cache-Control review for public static pages
+- Plugin-specific fix steps for LiteSpeed Cache, WP Rocket, W3 Total Cache, WP Super Cache, WP Fastest Cache, Breeze, Speed Optimizer, and WP-Optimize
+- Exact purge, cache-setting, and exclusion menu paths
+- Re-check one page after a fix
+- Re-check problem pages in safe batches
+- “Fixed after re-check” verification state
+- No crawling of external domains and no page-content storage
+- Existing autoload scanner, snapshots, monitoring, Site Health, exports, and WP-CLI tools remain available
 
 ## Safety
 
 AutoloadFix never deletes option values and never automatically mutates unknown options. Option values are not displayed or exported. Administrator-triggered autoload changes require a successful snapshot first and are verified after WordPress applies the change.
 
-The cache advisor does not install third-party cache plugins or edit their settings automatically. It uses supported purge APIs/hooks where available and otherwise shows a manual WordPress menu path. Persistent object-cache flushing is intentionally separate and requires explicit confirmation.
+The cache advisor and site scanner do not install third-party cache plugins or edit their settings automatically. They show the relevant cache-plugin menu paths, use supported purge APIs only where available, and let the administrator verify the result afterward.
 
-The public cache verifier makes two anonymous requests to the site's own home URL and stores only response metadata needed for cache diagnosis. It does not store page content.
+Site scanning is deliberately batched to reduce server load. Requests are anonymous and restricted to the same WordPress site. The scanner stores response metadata needed for diagnosis, not page content.
 
-Ownership and cache-fit recommendations are heuristic, so administrators should test important frontend, checkout, account, form, scheduled-task, and admin workflows after performance changes.
+Cache and performance findings are diagnostic signals, not guarantees. Hosting-level caches, CDNs, reverse proxies, logged-in behavior, commerce sessions, security rules, and custom code can affect results.
 
 ## License
 
