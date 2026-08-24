@@ -1,6 +1,6 @@
 === AutoloadFix ===
 Contributors: wpzenora
-Tags: autoload, database, performance, site health, optimization
+Tags: performance, cache, database, autoload, site health
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 7.2
@@ -8,11 +8,11 @@ Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Audit WordPress autoload data, diagnose page/cache problems, generate supported optimization profiles, and verify fixes.
+Audit autoloaded options, diagnose database and cache issues, scan slow pages, and verify WordPress performance fixes safely.
 
 == Description ==
 
-AutoloadFix is a conservative WordPress performance utility for reviewing autoloaded options, tracking autoload growth, understanding cache layers, diagnosing page-specific response/cache problems, and turning selected high-confidence findings into importable cache-plugin profiles when a supported native format exists.
+AutoloadFix is a WordPress performance toolkit for auditing autoloaded options, diagnosing database and cache issues, finding page-specific performance problems, and verifying whether fixes actually worked. It combines autoload health monitoring, cache guidance, page-by-page diagnostics, conservative optimization profiles, and snapshot-backed restore tools in one workflow.
 
 AutoloadFix does not delete option values, does not automatically change unknown options, does not install third-party cache plugins, does not crawl external domains, and does not silently import configuration into another plugin.
 
