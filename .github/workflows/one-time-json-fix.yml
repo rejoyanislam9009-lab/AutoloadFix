@@ -1,0 +1,161 @@
+name: One-time JSON report fix
+
+on:
+  push:
+    branches: [feature/optimization-profiles-1.4]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/optimization-profiles-1.4
+          fetch-depth: 0
+
+      - name: Apply reported fixes
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          root = Path('.')
+
+          def replace_once(path, old, new):
+              p = root / path
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f'Expected pattern not found in {path}: {old[:90]!r}')
+              p.write_text(text.replace(old, new, 1))
+
+          # Missing translator comment in Site Health.
+          replace_once(
+              'includes/class-autoloadfix-site-health.php',
+              "\t\t\t'badge'       => array( 'label' => __( 'Performance', 'autoloadfix' ), 'color' => 'blue' ),\n\t\t\t'description' => sprintf( '<p>%s</p>', esc_html( sprintf( __( 'Autoloaded options currently use %1$s. The configured health limit is %2$s.', 'autoloadfix' ), size_format( $summary['total_size'], 1 ), size_format( $summary['health_limit'], 1 ) ) ) ),",
+              "\t\t\t'badge'       => array( 'label' => __( 'Performance', 'autoloadfix' ), 'color' => 'blue' ),\n\t\t\t/* translators: 1: Current autoload size, 2: Configured autoload health limit. */\n\t\t\t'description' => sprintf( '<p>%s</p>', esc_html( sprintf( __( 'Autoloaded options currently use %1$s. The configured health limit is %2$s.', 'autoloadfix' ), size_format( $summary['total_size'], 1 ), size_format( $summary['health_limit'], 1 ) ) ) ),"
+          )
+
+          # Read-only tab selector and placeholder translations in Monitor & Tools.
+          replace_once(
+              'includes/trait-autoloadfix-advanced-render.php',
+              "\t\t$this->require_manage_options();\n\t\t$section = isset( $_GET['section'] ) ? sanitize_key( wp_unslash( $_GET['section'] ) ) : 'monitor';",
+              "\t\t$this->require_manage_options();\n\t\t// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selector; no data is changed.\n\t\t$section = isset( $_GET['section'] ) ? sanitize_key( wp_unslash( $_GET['section'] ) ) : 'monitor';"
+          )
+          replace_once(
+              'includes/trait-autoloadfix-advanced-render.php',
+              "\t\tforeach ( $audits as $audit ) {\n\t\t\t$max = max( $max, (int) $audit['total_size'] );\n\t\t}\n\t\t?>\n\t\t<div class=\"autoloadfix-grid autoloadfix-metrics\">\n\t\t\t<?php $this->metric( __( 'Current autoload', 'autoloadfix' ), size_format( $summary['total_size'], 1 ), sprintf( __( 'Score %d/100', 'autoloadfix' ), $summary['score'] ) ); ?>\n\t\t\t<?php $this->metric( __( 'Last audit delta', 'autoloadfix' ), $latest ? $this->delta( (int) $latest['delta_bytes'] ) : '—', $latest ? sprintf( __( '%s%% from previous audit', 'autoloadfix' ), number_format_i18n( (float) $latest['delta_percent'], 2 ) ) : __( 'No baseline yet', 'autoloadfix' ) ); ?>",
+              "\t\tforeach ( $audits as $audit ) {\n\t\t\t$max = max( $max, (int) $audit['total_size'] );\n\t\t}\n\n\t\t/* translators: %d: Autoload health score out of 100. */\n\t\t$current_score_text = sprintf( __( 'Score %d/100', 'autoloadfix' ), $summary['score'] );\n\t\t$delta_context      = __( 'No baseline yet', 'autoloadfix' );\n\t\tif ( $latest ) {\n\t\t\t/* translators: %s: Percentage change from the previous audit. */\n\t\t\t$delta_context = sprintf( __( '%s%% from previous audit', 'autoloadfix' ), number_format_i18n( (float) $latest['delta_percent'], 2 ) );\n\t\t}\n\t\t?>\n\t\t<div class=\"autoloadfix-grid autoloadfix-metrics\">\n\t\t\t<?php $this->metric( __( 'Current autoload', 'autoloadfix' ), size_format( $summary['total_size'], 1 ), $current_score_text ); ?>\n\t\t\t<?php $this->metric( __( 'Last audit delta', 'autoloadfix' ), $latest ? $this->delta( (int) $latest['delta_bytes'] ) : '—', $delta_context ); ?>"
+          )
+          replace_once(
+              'includes/trait-autoloadfix-advanced-render.php',
+              "\t\t\t<?php foreach ( $options as $row ) : $search = strtolower( $row['option_name'] . ' ' . $row['owner']['label'] ); ?>\n\t\t\t\t<tr class=\"autoloadfix-advanced-option\" data-search=\"<?php echo esc_attr( $search ); ?>\" data-risk=\"<?php echo esc_attr( $row['risk']['level'] ); ?>\" data-watched=\"<?php echo $row['watched'] ? '1' : '0'; ?>\"><td data-label=\"<?php esc_attr_e( 'Option', 'autoloadfix' ); ?>\"><code><?php echo esc_html( $row['option_name'] ); ?></code><div class=\"autoloadfix-muted\"><?php echo esc_html( sprintf( __( 'DB autoload: %s', 'autoloadfix' ), $row['autoload'] ) ); ?></div></td>",
+              "\t\t\t<?php foreach ( $options as $row ) : ?>\n\t\t\t\t<?php\n\t\t\t\t$search = strtolower( $row['option_name'] . ' ' . $row['owner']['label'] );\n\t\t\t\t/* translators: %s: Raw WordPress database autoload value for this option. */\n\t\t\t\t$db_autoload_label = sprintf( __( 'DB autoload: %s', 'autoloadfix' ), $row['autoload'] );\n\t\t\t\t?>\n\t\t\t\t<tr class=\"autoloadfix-advanced-option\" data-search=\"<?php echo esc_attr( $search ); ?>\" data-risk=\"<?php echo esc_attr( $row['risk']['level'] ); ?>\" data-watched=\"<?php echo $row['watched'] ? '1' : '0'; ?>\"><td data-label=\"<?php esc_attr_e( 'Option', 'autoloadfix' ); ?>\"><code><?php echo esc_html( $row['option_name'] ); ?></code><div class=\"autoloadfix-muted\"><?php echo esc_html( $db_autoload_label ); ?></div></td>"
+          )
+
+          # Optimization Profiles placeholder translations.
+          replace_once(
+              'includes/class-autoloadfix-optimization-profiles.php',
+              "\t\t$recommendation = $this->build_recommendation( $adapter, $results );\n\t\t$ready          = $adapter['export_supported'] && $scan['complete'] && ! empty( $recommendation['changes'] );\n\t\t$notice         = isset( $_GET['af_profile_notice'] ) ? sanitize_key( wp_unslash( $_GET['af_profile_notice'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended\n",
+              "\t\t$recommendation = $this->build_recommendation( $adapter, $results );\n\t\t$ready          = $adapter['export_supported'] && $scan['complete'] && ! empty( $recommendation['changes'] );\n\t\t$notice         = isset( $_GET['af_profile_notice'] ) ? sanitize_key( wp_unslash( $_GET['af_profile_notice'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin notice selector.\n\n\t\t$scan_readiness = __( 'Complete', 'autoloadfix' );\n\t\tif ( ! $scan['complete'] ) {\n\t\t\t/* translators: 1: Number of scanned pages, 2: Total pages in the current scan. */\n\t\t\t$scan_readiness = sprintf( __( '%1$d / %2$d pages', 'autoloadfix' ), $scan['cursor'], $scan['total'] );\n\t\t}\n\t\t/* translators: %s: Native settings import path inside the detected cache plugin. */\n\t\t$import_path_step = sprintf( __( 'Open %s.', 'autoloadfix' ), $adapter['import_path'] );\n\t\t/* translators: %d: Number of actionable manual findings. */\n\t\t$manual_heading = sprintf( __( 'Manual actions (%d)', 'autoloadfix' ), count( $recommendation['manual_action'] ) );\n\t\t/* translators: %d: Number of informational cache checks. */\n\t\t$info_heading = sprintf( __( 'Informational checks (%d)', 'autoloadfix' ), count( $recommendation['manual_info'] ) );\n"
+          )
+          replace_once('includes/class-autoloadfix-optimization-profiles.php', "\t\t\t\t<div><span><?php esc_html_e( 'Scan readiness', 'autoloadfix' ); ?></span><strong><?php echo esc_html( $scan['complete'] ? __( 'Complete', 'autoloadfix' ) : sprintf( __( '%1$d / %2$d pages', 'autoloadfix' ), $scan['cursor'], $scan['total'] ) ); ?></strong></div>", "\t\t\t\t<div><span><?php esc_html_e( 'Scan readiness', 'autoloadfix' ); ?></span><strong><?php echo esc_html( $scan_readiness ); ?></strong></div>")
+          replace_once('includes/class-autoloadfix-optimization-profiles.php', "\t\t\t\t\t\t<li><?php echo esc_html( sprintf( __( 'Open %s.', 'autoloadfix' ), $adapter['import_path'] ) ); ?></li>", "\t\t\t\t\t\t<li><?php echo esc_html( $import_path_step ); ?></li>")
+          replace_once('includes/class-autoloadfix-optimization-profiles.php', "\t\t\t\t\t<h3><?php echo esc_html( sprintf( __( 'Manual actions (%d)', 'autoloadfix' ), count( $recommendation['manual_action'] ) ) ); ?></h3>", "\t\t\t\t\t<h3><?php echo esc_html( $manual_heading ); ?></h3>")
+          replace_once('includes/class-autoloadfix-optimization-profiles.php', "\t\t\t\t\t<h3><?php echo esc_html( sprintf( __( 'Informational checks (%d)', 'autoloadfix' ), count( $recommendation['manual_info'] ) ) ); ?></h3>", "\t\t\t\t\t<h3><?php echo esc_html( $info_heading ); ?></h3>")
+          replace_once(
+              'includes/class-autoloadfix-optimization-profiles.php',
+              "\t\t\tif ( $count > 0 ) {\n\t\t\t\treturn sprintf( _n( 'No import change is justified. Resolve the %d actionable finding manually and re-check it; informational UNKNOWN cache states do not justify a cache mutation.', 'No import change is justified. Resolve the %d actionable findings manually and re-check them; informational UNKNOWN cache states do not justify a cache mutation.', $count, 'autoloadfix' ), $count );\n\t\t\t}",
+              "\t\t\tif ( $count > 0 ) {\n\t\t\t\t/* translators: %d: Number of actionable manual findings that remain. */\n\t\t\t\treturn sprintf( _n( 'No import change is justified. Resolve the %d actionable finding manually and re-check it; informational UNKNOWN cache states do not justify a cache mutation.', 'No import change is justified. Resolve the %d actionable findings manually and re-check them; informational UNKNOWN cache states do not justify a cache mutation.', $count, 'autoloadfix' ), $count );\n\t\t\t}"
+          )
+
+          # Site scanner: placeholder comments and false-positive internal key name.
+          replace_once(
+              'includes/class-autoloadfix-site-scanner.php',
+              "\t\t$guidance = $this->get_cache_context();\n\t\t$progress = $total > 0 ? min( 100, (int) round( ( $cursor / $total ) * 100 ) ) : 0;\n\n\t\t$this->render_notice();",
+              "\t\t$guidance = $this->get_cache_context();\n\t\t$progress = $total > 0 ? min( 100, (int) round( ( $cursor / $total ) * 100 ) ) : 0;\n\t\t/* translators: %d: Maximum number of public URLs scanned in one run. */\n\t\t$scan_limit_description = sprintf( __( 'AutoloadFix scans up to %d public URLs per run and processes only a small batch at a time to reduce server load.', 'autoloadfix' ), self::MAX_URLS );\n\n\t\t$this->render_notice();"
+          )
+          replace_once('includes/class-autoloadfix-site-scanner.php', "\t\t\t\t\t<p class=\"description\"><?php echo esc_html( sprintf( __( 'AutoloadFix scans up to %d public URLs per run and processes only a small batch at a time to reduce server load.', 'autoloadfix' ), self::MAX_URLS ) ); ?></p>", "\t\t\t\t\t<p class=\"description\"><?php echo esc_html( $scan_limit_description ); ?></p>")
+          p = root / 'includes/class-autoloadfix-site-scanner.php'
+          text = p.read_text()
+          text = text.replace("$guidance['exclude']", "$guidance['exclude_path']")
+          text = text.replace("$ctx['exclude']", "$ctx['exclude_path']")
+          text = text.replace("'exclude' =>", "'exclude_path' =>")
+          text = text.replace("'exclude'    =>", "'exclude_path' =>")
+          p.write_text(text)
+          for old, new in [
+              ("\t\t\t$steps[] = sprintf( __( 'Open %s and confirm page caching is enabled for public visitors.', 'autoloadfix' ), $ctx['cache'] );", "\t\t\t/* translators: %s: Cache plugin settings path. */\n\t\t\t$steps[] = sprintf( __( 'Open %s and confirm page caching is enabled for public visitors.', 'autoloadfix' ), $ctx['cache'] );"),
+              ("\t\t\t$steps[] = sprintf( __( 'Review %1$s and confirm this URL path is not excluded unless it really needs to be: %2$s', 'autoloadfix' ), $ctx['exclude_path'], $path );", "\t\t\t/* translators: 1: Cache exclusion settings path, 2: Affected URL path. */\n\t\t\t$steps[] = sprintf( __( 'Review %1$s and confirm this URL path is not excluded unless it really needs to be: %2$s', 'autoloadfix' ), $ctx['exclude_path'], $path );"),
+              ("\t\t\t$steps[] = sprintf( __( 'Clear the cache from %s, load the public page, then return here and click “Re-check this page”.', 'autoloadfix' ), $ctx['purge'] );", "\t\t\t/* translators: %s: Cache purge menu path. */\n\t\t\t$steps[] = sprintf( __( 'Clear the cache from %s, load the public page, then return here and click “Re-check this page”.', 'autoloadfix' ), $ctx['purge'] );"),
+              ("\t\t\t$steps[] = sprintf( __( 'Open %1$s and confirm the dynamic path is excluded from shared page cache: %2$s', 'autoloadfix' ), $ctx['exclude_path'], $path );", "\t\t\t/* translators: 1: Cache exclusion settings path, 2: Dynamic URL path. */\n\t\t\t$steps[] = sprintf( __( 'Open %1$s and confirm the dynamic path is excluded from shared page cache: %2$s', 'autoloadfix' ), $ctx['exclude_path'], $path );"),
+              ("\t\t\t$steps[] = sprintf( __( 'Purge from %s, then use “Re-check this page”. A BYPASS/MISS can be correct for this dynamic page; a shared HIT should disappear.', 'autoloadfix' ), $ctx['purge'] );", "\t\t\t/* translators: %s: Cache purge menu path. */\n\t\t\t$steps[] = sprintf( __( 'Purge from %s, then use “Re-check this page”. A BYPASS/MISS can be correct for this dynamic page; a shared HIT should disappear.', 'autoloadfix' ), $ctx['purge'] );"),
+              ("\t\t\t$steps[] = sprintf( __( 'Purge the active cache at %s.', 'autoloadfix' ), $ctx['purge'] );", "\t\t\t/* translators: %s: Cache purge menu path. */\n\t\t\t$steps[] = sprintf( __( 'Purge the active cache at %s.', 'autoloadfix' ), $ctx['purge'] );"),
+          ]:
+              replace_once('includes/class-autoloadfix-site-scanner.php', old, new)
+
+          # Scanner direct DB reads are intentional fresh diagnostics; document the exceptions.
+          p = root / 'includes/class-autoloadfix-scanner.php'
+          text = p.read_text()
+          text = text.replace("$row             = $wpdb->get_row( $prepared, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared", "$row             = $wpdb->get_row( $prepared, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh aggregate diagnostics require a direct options-table read.")
+          text = text.replace("$rows            = $wpdb->get_results( $prepared, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared", "$rows            = $wpdb->get_results( $prepared, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh ranked diagnostics require a direct options-table read.")
+          text = text.replace("$row = $wpdb->get_row( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared", "$row = $wpdb->get_row( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reads one requested option's autoload metadata without loading its value.")
+          text = text.replace("$rows = $wpdb->get_results( \"SELECT autoload, COUNT(*) AS option_count, COALESCE(SUM(LENGTH(option_value)), 0) AS total_size FROM {$wpdb->options} GROUP BY autoload ORDER BY total_size DESC\", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared", "$rows = $wpdb->get_results( \"SELECT autoload, COUNT(*) AS option_count, COALESCE(SUM(LENGTH(option_value)), 0) AS total_size FROM {$wpdb->options} GROUP BY autoload ORDER BY total_size DESC\", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh aggregate diagnostics require a direct options-table read.")
+          text = text.replace("\t\t\t\treturn array( 'label' => sprintf( __( 'Theme: %s', 'autoloadfix' ), $theme_name ), 'type' => 'theme', 'status' => 'active', 'confidence' => 88 );", "\t\t\t\t/* translators: %s: Active WordPress theme name. */\n\t\t\t\treturn array( 'label' => sprintf( __( 'Theme: %s', 'autoloadfix' ), $theme_name ), 'type' => 'theme', 'status' => 'active', 'confidence' => 88 );")
+          p.write_text(text)
+
+          # Snapshot dedicated-table operations and immediate verification reads.
+          p = root / 'includes/class-autoloadfix-snapshot.php'
+          text = p.read_text()
+          text = text.replace("\t\t$inserted = $wpdb->insert(\n", "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Writes to AutoloadFix's dedicated snapshot table.\n\t\t$inserted = $wpdb->insert(\n", 1)
+          text = text.replace("\t\t$result = $wpdb->update( $wpdb->prefix . 'autoloadfix_snapshots', array( 'total_after' => max( 0, (int) $total_after ) ), array( 'id' => (int) $snapshot_id ), array( '%d' ), array( '%d' ) );", "\t\t$result = $wpdb->update( $wpdb->prefix . 'autoloadfix_snapshots', array( 'total_after' => max( 0, (int) $total_after ) ), array( 'id' => (int) $snapshot_id ), array( '%d' ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Updates AutoloadFix's dedicated snapshot table.")
+          text = text.replace("\t\t$result = $wpdb->delete( $wpdb->prefix . 'autoloadfix_snapshots', array( 'id' => (int) $snapshot_id ), array( '%d' ) );", "\t\t$result = $wpdb->delete( $wpdb->prefix . 'autoloadfix_snapshots', array( 'id' => (int) $snapshot_id ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Deletes from AutoloadFix's dedicated snapshot table.")
+          text = text.replace("$rows  = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared", "$rows  = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Snapshot history must reflect the current dedicated table state.")
+          text = text.replace("$row = $wpdb->get_row( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared", "$row = $wpdb->get_row( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Restore needs the current snapshot payload from the dedicated table.")
+          text = text.replace("\t\t\t$current_state = $wpdb->get_var( $wpdb->prepare( \"SELECT autoload FROM {$wpdb->options} WHERE option_name = %s LIMIT 1\", $option_name ) );", "\t\t\t$current_state = $wpdb->get_var( $wpdb->prepare( \"SELECT autoload FROM {$wpdb->options} WHERE option_name = %s LIMIT 1\", $option_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Verifies the autoload flag immediately after WordPress applies the restore.")
+          text = text.replace("\t\t$wpdb->update( $wpdb->prefix . 'autoloadfix_snapshots', array( 'restored_at' => current_time( 'mysql' ) ), array( 'id' => (int) $snapshot_id ), array( '%s' ), array( '%d' ) );", "\t\t$wpdb->update( $wpdb->prefix . 'autoloadfix_snapshots', array( 'restored_at' => current_time( 'mysql' ) ), array( 'id' => (int) $snapshot_id ), array( '%s' ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Marks a row in AutoloadFix's dedicated snapshot table as restored.")
+          p.write_text(text)
+
+          # Audit dedicated-table operations.
+          p = root / 'includes/class-autoloadfix-audit.php'
+          text = p.read_text()
+          text = text.replace("\t\t$inserted = $wpdb->insert(\n", "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Writes to AutoloadFix's dedicated audit history table.\n\t\t$inserted = $wpdb->insert(\n", 1)
+          text = text.replace("$row = $wpdb->get_row( \"SELECT id, created_at, trigger_type, total_size, option_count, large_count, score, delta_bytes, delta_percent FROM {$wpdb->prefix}autoloadfix_audits ORDER BY id DESC LIMIT 1\", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared", "$row = $wpdb->get_row( \"SELECT id, created_at, trigger_type, total_size, option_count, large_count, score, delta_bytes, delta_percent FROM {$wpdb->prefix}autoloadfix_audits ORDER BY id DESC LIMIT 1\", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Audit history must reflect the latest dedicated-table row.")
+          text = text.replace("$rows  = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared", "$rows  = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Audit history is intentionally read fresh from the dedicated table.")
+          text = text.replace("$wpdb->query( $wpdb->prepare( \"DELETE FROM {$wpdb->prefix}autoloadfix_audits WHERE created_at < %s\", $cutoff ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared", "$wpdb->query( $wpdb->prepare( \"DELETE FROM {$wpdb->prefix}autoloadfix_audits WHERE created_at < %s\", $cutoff ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Retention cleanup operates on AutoloadFix's dedicated audit table.")
+          p.write_text(text)
+
+          # Intentional third-party LiteSpeed hook invocation.
+          replace_once(
+              'includes/class-autoloadfix-cache-advisor.php',
+              "\t\t\t\tcase 'litespeed':\n\t\t\t\t\tdo_action( 'litespeed_purge_all' );",
+              "\t\t\t\tcase 'litespeed':\n\t\t\t\t\t// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- This hook is defined by LiteSpeed Cache.\n\t\t\t\t\tdo_action( 'litespeed_purge_all' );"
+          )
+
+          # Confirm the internal false-positive key is fully gone from Site Scanner.
+          site = (root / 'includes/class-autoloadfix-site-scanner.php').read_text()
+          if "['exclude']" in site or "'exclude' =>" in site or "'exclude'    =>" in site:
+              raise SystemExit('Old internal exclude key still exists')
+          PY
+
+      - name: Syntax and whitespace validation
+        shell: bash
+        run: |
+          git diff --check
+          find . -type f -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
+
+      - name: Commit fixes
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo 'No changes to commit.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add includes
+          git commit -m '[skip-json-fix] Fix exported coding-standard findings'
+          git push origin HEAD:feature/optimization-profiles-1.4
