@@ -65,14 +65,14 @@ class AutoloadFix_Snapshot {
 	/** @param int $snapshot_id ID. @param int $total_after Bytes. @return bool */
 	public function set_total_after( $snapshot_id, $total_after ) {
 		global $wpdb;
-		$result = $wpdb->update( $wpdb->prefix . 'autoloadfix_snapshots', array( 'total_after' => max( 0, (int) $total_after ) ), array( 'id' => (int) $snapshot_id ), array( '%d' ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Updates AutoloadFix's dedicated snapshot table.
+		$result = $wpdb->update( $wpdb->prefix . 'autoloadfix_snapshots', array( 'total_after' => max( 0, (int) $total_after ) ), array( 'id' => (int) $snapshot_id ), array( '%d' ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Updates AutoloadFix's dedicated snapshot table and must write through immediately.
 		return false !== $result;
 	}
 
 	/** @param int $snapshot_id ID. @return bool */
 	public function delete( $snapshot_id ) {
 		global $wpdb;
-		$result = $wpdb->delete( $wpdb->prefix . 'autoloadfix_snapshots', array( 'id' => (int) $snapshot_id ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Deletes from AutoloadFix's dedicated snapshot table.
+		$result = $wpdb->delete( $wpdb->prefix . 'autoloadfix_snapshots', array( 'id' => (int) $snapshot_id ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Deletes from AutoloadFix's dedicated snapshot table and cannot use an object-cache read path.
 		return false !== $result;
 	}
 
@@ -147,7 +147,7 @@ class AutoloadFix_Snapshot {
 		if ( $failed > 0 ) {
 			return new WP_Error( 'autoloadfix_restore_incomplete', __( 'WordPress could not restore every option in this snapshot.', 'autoloadfix' ) );
 		}
-		$wpdb->update( $wpdb->prefix . 'autoloadfix_snapshots', array( 'restored_at' => current_time( 'mysql' ) ), array( 'id' => (int) $snapshot_id ), array( '%s' ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Marks a row in AutoloadFix's dedicated snapshot table as restored.
+		$wpdb->update( $wpdb->prefix . 'autoloadfix_snapshots', array( 'restored_at' => current_time( 'mysql' ) ), array( 'id' => (int) $snapshot_id ), array( '%s' ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Marks a row in AutoloadFix's dedicated snapshot table as restored and must write through immediately.
 		return array( 'updated' => $updated, 'total' => count( $requested ) );
 	}
 }
