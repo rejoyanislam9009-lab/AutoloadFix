@@ -37,6 +37,7 @@ class AutoloadFix_Site_Health {
 			'label'       => $good ? __( 'Autoloaded options are within the configured limit', 'autoloadfix' ) : __( 'Autoloaded options need review', 'autoloadfix' ),
 			'status'      => $good ? 'good' : 'critical',
 			'badge'       => array( 'label' => __( 'Performance', 'autoloadfix' ), 'color' => 'blue' ),
+			/* translators: 1: Current autoload size, 2: Configured autoload health limit. */
 			'description' => sprintf( '<p>%s</p>', esc_html( sprintf( __( 'Autoloaded options currently use %1$s. The configured health limit is %2$s.', 'autoloadfix' ), size_format( $summary['total_size'], 1 ), size_format( $summary['health_limit'], 1 ) ) ) ),
 			'actions'     => sprintf( '<p><a href="%s">%s</a></p>', esc_url( admin_url( 'admin.php?page=autoloadfix' ) ), esc_html__( 'Review with AutoloadFix', 'autoloadfix' ) ),
 			'test'        => 'autoloadfix_autoload_health',

@@ -75,6 +75,7 @@ class AutoloadFix_Cache_Advisor {
 
 			switch ( $integration['purge'] ) {
 				case 'litespeed':
+					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- This hook is defined by LiteSpeed Cache.
 					do_action( 'litespeed_purge_all' );
 					$purged[] = $integration['name'];
 					break;

@@ -1,20 +1,20 @@
 === AutoloadFix ===
-Contributors: rejoyanislam9009-lab
+Contributors: wpzenora
 Tags: autoload, database, performance, site health, optimization
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 7.2
-Stable tag: 1.3.0
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Audit WordPress autoload data, diagnose cache layers and page-specific problems, get guided fixes, and verify the result.
+Audit WordPress autoload data, diagnose page/cache problems, generate supported optimization profiles, and verify fixes.
 
 == Description ==
 
-AutoloadFix is a conservative WordPress performance utility for reviewing autoloaded options, tracking autoload growth, understanding cache layers, and diagnosing page-specific response/cache problems.
+AutoloadFix is a conservative WordPress performance utility for reviewing autoloaded options, tracking autoload growth, understanding cache layers, diagnosing page-specific response/cache problems, and turning selected high-confidence findings into importable cache-plugin profiles when a supported native format exists.
 
-AutoloadFix does not delete option values, does not automatically change unknown options, does not install third-party cache plugins, and does not crawl external domains.
+AutoloadFix does not delete option values, does not automatically change unknown options, does not install third-party cache plugins, does not crawl external domains, and does not silently import configuration into another plugin.
 
 = Highlights =
 
@@ -37,14 +37,40 @@ AutoloadFix does not delete option values, does not automatically change unknown
 * Safe batch scanning of up to 300 public URLs per scan run.
 * HTTP 4xx/5xx, redirect, response-time, cache-warming, cache-bypass, stale-cache, and restrictive Cache-Control checks.
 * Dynamic WooCommerce page checks for Cart, Checkout, and My Account.
+* Dynamic UNKNOWN/PRESENT cache states are treated as evidence uncertainty, not as an automatic configuration failure.
+* LiteSpeed scanner probes recognize `X-LiteSpeed-Cache-Control: no-cache/private` as a BYPASS signal inside AutoloadFix diagnostics.
 * Plugin-specific fix instructions for common cache plugins.
 * Re-check one page or a safe batch of problem pages after making a change.
 * Verified “Fixed after re-check” state.
+* Optimization Profiles for supported native cache-plugin import formats.
+* WP Rocket site-specific JSON profile generation for high-confidence scanner-linked changes.
+* LiteSpeed Cache native `.data` profile generation for high-confidence scanner-linked changes.
+* Profile generation is blocked until Site Problem Scanner reaches 100% for the current scan.
+* Profile diff preview shows current setting, recommended setting, and the finding that justifies the change.
+* A zero-change profile result is a valid outcome; AutoloadFix does not present an import as necessary when no safe change exists.
+* Actionable manual findings are separated from informational cache-evidence checks.
 * JSON and CSV autoload diagnostic exports without option values.
 * WordPress Site Health integration and diagnostics.
 * Multisite-aware active plugin detection.
 * WP-CLI tools: `wp autoloadfix status`, `wp autoloadfix top`, and `wp autoloadfix audit`.
 * No external account, ads, telemetry, or frontend assets.
+
+= Optimization Profiles =
+
+Optimization Profiles connect diagnosis to a controlled configuration workflow.
+
+AutoloadFix first requires the current Site Problem Scanner run to reach 100%. It then examines the saved findings and checks whether the active cache plugin has a native import format that AutoloadFix explicitly supports. A downloadable profile is offered only when a finding maps to a high-confidence configuration change.
+
+For example, if a dynamic commerce URL is actually detected as a shared full-page cache HIT, AutoloadFix can propose adding that exact path to the cache plugin's exclusion setting. It does not enable aggressive JavaScript/CSS optimization simply because those switches exist.
+
+Current profile adapters include:
+
+* WP Rocket: JSON settings profile based on the site's current WP Rocket configuration, with issue-linked changes applied.
+* LiteSpeed Cache: native `.data` import profile using LiteSpeed's current import format, containing the version marker and only the setting keys AutoloadFix intentionally changes.
+
+AutoloadFix shows the native import path in the WordPress dashboard only when an importable change is actually ready. The administrator downloads and imports the file manually, purges cache, then returns to Site Problem Scanner and re-checks the problem pages. AutoloadFix does not mark a problem fixed merely because a file was downloaded or imported.
+
+A settings file cannot safely repair every problem. HTTP errors, redirects, slow PHP/database work, hosting limits, and external API latency remain manual findings. An UNKNOWN cache status is kept as an informational evidence gap unless a stronger signal establishes a real cache problem; UNKNOWN by itself does not justify mutating cache settings.
 
 = Site Problem Scanner =
 
@@ -60,6 +86,7 @@ For each scanned URL, AutoloadFix can report:
 * Whether repeated anonymous requests warm a public page to a cache HIT.
 * Unexpected cache bypass on ordinary public pages.
 * Shared-cache HIT on dynamic WooCommerce pages.
+* Cache-evidence uncertainty on dynamic WooCommerce pages when no explicit signal is exposed.
 * Restrictive `Cache-Control` on ordinary public pages.
 * Page-specific fix steps and the exact cache-plugin menu path to review.
 
@@ -77,7 +104,9 @@ AutoloadFix does not install cache plugins automatically. On LiteSpeed/OpenLiteS
 
 = Safety model =
 
-AutoloadFix never displays or exports option values. Autoload changes are administrator initiated, snapshot backed, applied through WordPress APIs where available, and verified afterward.
+AutoloadFix never displays or exports WordPress option values in its autoload diagnostic reports. Autoload changes are administrator initiated, snapshot backed, applied through WordPress APIs where available, and verified afterward.
+
+Optimization profile generation is a separate administrator-requested export. A profile is created only for a detected supported cache plugin and is downloaded directly to the administrator. It is not sent to AutoloadFix or an external service and is not imported automatically. WP Rocket profiles are based on the site's current WP Rocket settings and should be treated as private site-specific configuration files.
 
 The page scanner is restricted to URLs on the same WordPress site. It uses anonymous requests and stores response metadata needed for diagnosis rather than page content. It does not follow links into external domains.
 
@@ -91,6 +120,7 @@ Cache recommendations are advisory. Hosting-level caches, CDNs, reverse proxies,
 4. Use Overview and Monitor & Tools for autoload diagnostics.
 5. Use Optimization Advisor for cache-stack guidance.
 6. Use Site Problem Scanner for page-by-page checks and guided verification.
+7. Complete the current scan, then open Optimization Profiles if a supported cache-plugin import profile is useful.
 
 == Frequently Asked Questions ==
 
@@ -109,6 +139,26 @@ No. Recommendations are advisory. AutoloadFix never automatically installs a thi
 = Which cache tools can AutoloadFix recognize? =
 
 The optimization advisor recognizes several common WordPress cache/optimization plugins, including LiteSpeed Cache, WP Rocket, WP Super Cache, W3 Total Cache, WP Fastest Cache, Breeze, Speed Optimizer, WP-Optimize, and Autoptimize. Site Problem Scanner provides detailed cache-setting/exclusion paths for common page-cache tools.
+
+= Which plugins can receive an AutoloadFix import profile? =
+
+Version 1.4.0 includes explicit profile adapters for WP Rocket JSON settings imports and LiteSpeed Cache native `.data` settings imports. Other detected cache plugins continue to receive guided manual instructions until their import format and safe behavior are explicitly supported.
+
+= Why must the Site Problem Scanner finish before profile download? =
+
+A partial scan could miss a dynamic page or a conflicting problem and produce an incomplete recommendation. Requiring the current scan to reach 100% makes the generated profile reflect the full bounded scan set rather than the first few pages.
+
+= Why does Optimization Profiles sometimes show zero safe changes? =
+
+That is a valid result. It means the scan did not find a high-confidence cache setting change that AutoloadFix can safely encode into the detected plugin's native import format. Do not import a configuration file merely because the plugin supports imports; address only genuine actionable findings and re-check them.
+
+= Does AutoloadFix import the profile automatically? =
+
+No. Download, review, import, and cache purge remain explicit administrator actions. After import, use the Site Problem Scanner re-check workflow to verify the actual result.
+
+= Will the profile enable every optimization setting? =
+
+No. Aggressive CSS/JS, delay, combine, image, crawler, or object-cache switches are not enabled merely because they exist. AutoloadFix limits generated changes to high-confidence findings that map directly to a known setting.
 
 = What does Site Problem Scanner change on my site? =
 
@@ -136,7 +186,7 @@ No external account or service is required. Optional page/cache probes request o
 
 = Does it work with multisite? =
 
-AutoloadFix recognizes network-active plugins when estimating ownership and detecting cache integrations. Audits and settings are maintained per site.
+AutoloadFix recognizes network-active plugins when estimating ownership and detecting cache integrations. Audits and settings are maintained per site. Profile imports should be reviewed in the context of the cache plugin's own multisite behavior.
 
 == Screenshots ==
 
@@ -150,8 +200,23 @@ AutoloadFix recognizes network-active plugins when estimating ownership and dete
 8. Site Problem Scanner summary and scan progress.
 9. Page-by-page problem rows with plugin-specific fix steps.
 10. Re-check workflow showing verified fixed results.
+11. Optimization Profiles readiness and safe setting diff.
+12. Import-and-verify workflow for supported cache plugins.
 
 == Changelog ==
+
+= 1.4.0 =
+* Added Optimization Profiles for supported cache-plugin native import formats.
+* Added WP Rocket JSON profile generation based on current site settings and high-confidence scanner-linked changes.
+* Added LiteSpeed Cache native `.data` profile generation for high-confidence scanner-linked changes.
+* Added exact import paths and import/purge/re-check workflow guidance.
+* Added profile diff preview with current setting, recommended setting, and reason.
+* Blocked profile generation until the current bounded Site Problem Scanner run reaches 100%.
+* Kept slow responses, HTTP/route errors, UNKNOWN cache states, and other non-deterministic findings out of automatic profile changes.
+* Separated actionable manual findings from informational cache-evidence checks.
+* Added a dedicated no-import-needed state when a completed scan produces zero safe profile changes.
+* Recognized LiteSpeed `X-LiteSpeed-Cache-Control: no-cache/private` as BYPASS evidence inside AutoloadFix scanner requests.
+* Normalized pre-release dynamic UNKNOWN Info promotions back to their real underlying severity; UNKNOWN alone is not treated as a cache-setting failure.
 
 = 1.3.0 =
 * Added Site Problem Scanner for page-by-page diagnostics.
@@ -184,5 +249,5 @@ AutoloadFix recognizes network-active plugins when estimating ownership and dete
 
 == Upgrade Notice ==
 
-= 1.3.0 =
-Adds page-by-page website diagnostics, cache-plugin-specific fix instructions, and a re-check workflow that verifies whether detected problems were fixed.
+= 1.4.0 =
+Adds conservative importable optimization profiles for supported cache plugins and verifies the real result through Site Problem Scanner instead of assuming a settings import fixed the site.

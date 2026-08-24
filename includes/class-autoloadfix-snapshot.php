@@ -46,6 +46,7 @@ class AutoloadFix_Snapshot {
 		if ( false === $payload ) {
 			return false;
 		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Writes to AutoloadFix's dedicated snapshot table.
 		$inserted = $wpdb->insert(
 			$wpdb->prefix . 'autoloadfix_snapshots',
 			array(
@@ -64,14 +65,14 @@ class AutoloadFix_Snapshot {
 	/** @param int $snapshot_id ID. @param int $total_after Bytes. @return bool */
 	public function set_total_after( $snapshot_id, $total_after ) {
 		global $wpdb;
-		$result = $wpdb->update( $wpdb->prefix . 'autoloadfix_snapshots', array( 'total_after' => max( 0, (int) $total_after ) ), array( 'id' => (int) $snapshot_id ), array( '%d' ), array( '%d' ) );
+		$result = $wpdb->update( $wpdb->prefix . 'autoloadfix_snapshots', array( 'total_after' => max( 0, (int) $total_after ) ), array( 'id' => (int) $snapshot_id ), array( '%d' ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Updates AutoloadFix's dedicated snapshot table and must write through immediately.
 		return false !== $result;
 	}
 
 	/** @param int $snapshot_id ID. @return bool */
 	public function delete( $snapshot_id ) {
 		global $wpdb;
-		$result = $wpdb->delete( $wpdb->prefix . 'autoloadfix_snapshots', array( 'id' => (int) $snapshot_id ), array( '%d' ) );
+		$result = $wpdb->delete( $wpdb->prefix . 'autoloadfix_snapshots', array( 'id' => (int) $snapshot_id ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Deletes from AutoloadFix's dedicated snapshot table and cannot use an object-cache read path.
 		return false !== $result;
 	}
 
@@ -80,7 +81,7 @@ class AutoloadFix_Snapshot {
 		global $wpdb;
 		$limit = max( 1, min( 100, (int) $limit ) );
 		$sql   = $wpdb->prepare( "SELECT id, created_at, user_id, reason, payload, total_before, total_after, restored_at FROM {$wpdb->prefix}autoloadfix_snapshots ORDER BY id DESC LIMIT %d", $limit );
-		$rows  = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$rows  = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Snapshot history must reflect the current dedicated table state.
 		foreach ( $rows as &$row ) {
 			$payload              = json_decode( $row['payload'], true );
 			$row['changed_count'] = is_array( $payload ) ? count( $payload ) : 0;
@@ -105,7 +106,7 @@ class AutoloadFix_Snapshot {
 	public function restore( $snapshot_id ) {
 		global $wpdb;
 		$sql = $wpdb->prepare( "SELECT id, payload, restored_at FROM {$wpdb->prefix}autoloadfix_snapshots WHERE id = %d LIMIT 1", (int) $snapshot_id );
-		$row = $wpdb->get_row( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$row = $wpdb->get_row( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Restore needs the current snapshot payload from the dedicated table.
 		if ( ! is_array( $row ) ) {
 			return new WP_Error( 'autoloadfix_snapshot_missing', __( 'Snapshot not found.', 'autoloadfix' ) );
 		}
@@ -131,7 +132,7 @@ class AutoloadFix_Snapshot {
 		$updated = 0;
 		$failed  = 0;
 		foreach ( $requested as $option_name => $should_autoload ) {
-			$current_state = $wpdb->get_var( $wpdb->prepare( "SELECT autoload FROM {$wpdb->options} WHERE option_name = %s LIMIT 1", $option_name ) );
+			$current_state = $wpdb->get_var( $wpdb->prepare( "SELECT autoload FROM {$wpdb->options} WHERE option_name = %s LIMIT 1", $option_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Verifies the autoload flag immediately after WordPress applies the restore.
 			if ( null === $current_state ) {
 				++$failed;
 				continue;
@@ -146,7 +147,7 @@ class AutoloadFix_Snapshot {
 		if ( $failed > 0 ) {
 			return new WP_Error( 'autoloadfix_restore_incomplete', __( 'WordPress could not restore every option in this snapshot.', 'autoloadfix' ) );
 		}
-		$wpdb->update( $wpdb->prefix . 'autoloadfix_snapshots', array( 'restored_at' => current_time( 'mysql' ) ), array( 'id' => (int) $snapshot_id ), array( '%s' ), array( '%d' ) );
+		$wpdb->update( $wpdb->prefix . 'autoloadfix_snapshots', array( 'restored_at' => current_time( 'mysql' ) ), array( 'id' => (int) $snapshot_id ), array( '%s' ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Marks a row in AutoloadFix's dedicated snapshot table as restored and must write through immediately.
 		return array( 'updated' => $updated, 'total' => count( $requested ) );
 	}
 }

@@ -13,6 +13,7 @@ trait AutoloadFix_Advanced_Render {
 	/** Render professional tools page. */
 	public function render_page() {
 		$this->require_manage_options();
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selector; no data is changed.
 		$section = isset( $_GET['section'] ) ? sanitize_key( wp_unslash( $_GET['section'] ) ) : 'monitor';
 		$section = in_array( $section, array( 'monitor', 'diagnostics', 'settings' ), true ) ? $section : 'monitor';
 		?>
@@ -52,10 +53,18 @@ trait AutoloadFix_Advanced_Render {
 		foreach ( $audits as $audit ) {
 			$max = max( $max, (int) $audit['total_size'] );
 		}
+
+		/* translators: %d: Autoload health score out of 100. */
+		$current_score_text = sprintf( __( 'Score %d/100', 'autoloadfix' ), $summary['score'] );
+		$delta_context      = __( 'No baseline yet', 'autoloadfix' );
+		if ( $latest ) {
+			/* translators: %s: Percentage change from the previous audit. */
+			$delta_context = sprintf( __( '%s%% from previous audit', 'autoloadfix' ), number_format_i18n( (float) $latest['delta_percent'], 2 ) );
+		}
 		?>
 		<div class="autoloadfix-grid autoloadfix-metrics">
-			<?php $this->metric( __( 'Current autoload', 'autoloadfix' ), size_format( $summary['total_size'], 1 ), sprintf( __( 'Score %d/100', 'autoloadfix' ), $summary['score'] ) ); ?>
-			<?php $this->metric( __( 'Last audit delta', 'autoloadfix' ), $latest ? $this->delta( (int) $latest['delta_bytes'] ) : '—', $latest ? sprintf( __( '%s%% from previous audit', 'autoloadfix' ), number_format_i18n( (float) $latest['delta_percent'], 2 ) ) : __( 'No baseline yet', 'autoloadfix' ) ); ?>
+			<?php $this->metric( __( 'Current autoload', 'autoloadfix' ), size_format( $summary['total_size'], 1 ), $current_score_text ); ?>
+			<?php $this->metric( __( 'Last audit delta', 'autoloadfix' ), $latest ? $this->delta( (int) $latest['delta_bytes'] ) : '—', $delta_context ); ?>
 			<?php $this->metric( __( 'Watched options', 'autoloadfix' ), number_format_i18n( count( $this->scanner->get_watched_options() ) ), __( 'Tracked for review', 'autoloadfix' ) ); ?>
 			<?php $this->metric( __( 'Next audit', 'autoloadfix' ), $next ? wp_date( get_option( 'date_format' ), $next ) : __( 'Disabled', 'autoloadfix' ), $next ? wp_date( get_option( 'time_format' ), $next ) : __( 'Configure scheduling', 'autoloadfix' ) ); ?>
 		</div>
@@ -74,8 +83,13 @@ trait AutoloadFix_Advanced_Render {
 			<div class="autoloadfix-panel-head"><div><h2><?php esc_html_e( 'Option review workspace', 'autoloadfix' ); ?></h2><p><?php esc_html_e( 'Search the largest 250 autoloaded entries. Watch important entries or ignore known noise. Use Overview for snapshot-backed autoload changes.', 'autoloadfix' ); ?></p></div><a class="button" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=autoloadfix_export_csv' ), 'autoloadfix_export_csv' ) ); ?>"><?php esc_html_e( 'Export CSV', 'autoloadfix' ); ?></a></div>
 			<div class="autoloadfix-advanced-toolbar"><input type="search" id="autoloadfix-advanced-search" placeholder="<?php esc_attr_e( 'Search option or owner…', 'autoloadfix' ); ?>" /><select id="autoloadfix-advanced-risk"><option value="all"><?php esc_html_e( 'All assessments', 'autoloadfix' ); ?></option><option value="candidate"><?php esc_html_e( 'Candidates', 'autoloadfix' ); ?></option><option value="review"><?php esc_html_e( 'Review', 'autoloadfix' ); ?></option><option value="protected"><?php esc_html_e( 'Protected', 'autoloadfix' ); ?></option><option value="ignored"><?php esc_html_e( 'Ignored', 'autoloadfix' ); ?></option></select><label><input type="checkbox" id="autoloadfix-advanced-watched" /> <?php esc_html_e( 'Watched only', 'autoloadfix' ); ?></label><span id="autoloadfix-advanced-count" class="autoloadfix-muted"></span></div>
 			<div class="autoloadfix-table-wrap"><table id="autoloadfix-advanced-table" class="widefat striped autoloadfix-table"><thead><tr><th><?php esc_html_e( 'Option', 'autoloadfix' ); ?></th><th><?php esc_html_e( 'Size / impact', 'autoloadfix' ); ?></th><th><?php esc_html_e( 'Likely owner', 'autoloadfix' ); ?></th><th><?php esc_html_e( 'Assessment', 'autoloadfix' ); ?></th><th><?php esc_html_e( 'Review tools', 'autoloadfix' ); ?></th></tr></thead><tbody>
-			<?php foreach ( $options as $row ) : $search = strtolower( $row['option_name'] . ' ' . $row['owner']['label'] ); ?>
-				<tr class="autoloadfix-advanced-option" data-search="<?php echo esc_attr( $search ); ?>" data-risk="<?php echo esc_attr( $row['risk']['level'] ); ?>" data-watched="<?php echo $row['watched'] ? '1' : '0'; ?>"><td data-label="<?php esc_attr_e( 'Option', 'autoloadfix' ); ?>"><code><?php echo esc_html( $row['option_name'] ); ?></code><div class="autoloadfix-muted"><?php echo esc_html( sprintf( __( 'DB autoload: %s', 'autoloadfix' ), $row['autoload'] ) ); ?></div></td><td data-label="<?php esc_attr_e( 'Size / impact', 'autoloadfix' ); ?>"><strong><?php echo esc_html( size_format( $row['option_size'], 1 ) ); ?></strong><div class="autoloadfix-muted"><?php echo esc_html( number_format_i18n( (float) $row['impact_percent'], 1 ) ); ?>% <?php esc_html_e( 'of current autoload', 'autoloadfix' ); ?></div></td><td data-label="<?php esc_attr_e( 'Likely owner', 'autoloadfix' ); ?>"><?php echo esc_html( $row['owner']['label'] ); ?><div class="autoloadfix-muted"><?php echo esc_html( (int) $row['owner']['confidence'] ); ?>% <?php esc_html_e( 'confidence', 'autoloadfix' ); ?></div></td><td data-label="<?php esc_attr_e( 'Assessment', 'autoloadfix' ); ?>"><span class="autoloadfix-pill autoloadfix-pill-<?php echo esc_attr( $row['risk']['level'] ); ?>"><?php echo esc_html( $row['risk']['label'] ); ?></span><div class="autoloadfix-reason"><?php echo esc_html( $row['risk']['reason'] ); ?></div></td><td data-label="<?php esc_attr_e( 'Review tools', 'autoloadfix' ); ?>"><div class="autoloadfix-advanced-actions"><?php $this->toggle_form( 'autoloadfix_toggle_watch', $row['option_name'], 'watched', $row['watched'], $row['watched'] ? __( 'Unwatch', 'autoloadfix' ) : __( 'Watch', 'autoloadfix' ) ); ?><?php if ( 'protected' !== $row['risk']['level'] ) : $this->toggle_form( 'autoloadfix_toggle_ignore', $row['option_name'], 'ignored', $row['ignored'], $row['ignored'] ? __( 'Unignore', 'autoloadfix' ) : __( 'Ignore', 'autoloadfix' ) ); endif; ?></div></td></tr>
+			<?php foreach ( $options as $row ) : ?>
+				<?php
+				$search = strtolower( $row['option_name'] . ' ' . $row['owner']['label'] );
+				/* translators: %s: Raw WordPress database autoload value for this option. */
+				$db_autoload_label = sprintf( __( 'DB autoload: %s', 'autoloadfix' ), $row['autoload'] );
+				?>
+				<tr class="autoloadfix-advanced-option" data-search="<?php echo esc_attr( $search ); ?>" data-risk="<?php echo esc_attr( $row['risk']['level'] ); ?>" data-watched="<?php echo $row['watched'] ? '1' : '0'; ?>"><td data-label="<?php esc_attr_e( 'Option', 'autoloadfix' ); ?>"><code><?php echo esc_html( $row['option_name'] ); ?></code><div class="autoloadfix-muted"><?php echo esc_html( $db_autoload_label ); ?></div></td><td data-label="<?php esc_attr_e( 'Size / impact', 'autoloadfix' ); ?>"><strong><?php echo esc_html( size_format( $row['option_size'], 1 ) ); ?></strong><div class="autoloadfix-muted"><?php echo esc_html( number_format_i18n( (float) $row['impact_percent'], 1 ) ); ?>% <?php esc_html_e( 'of current autoload', 'autoloadfix' ); ?></div></td><td data-label="<?php esc_attr_e( 'Likely owner', 'autoloadfix' ); ?>"><?php echo esc_html( $row['owner']['label'] ); ?><div class="autoloadfix-muted"><?php echo esc_html( (int) $row['owner']['confidence'] ); ?>% <?php esc_html_e( 'confidence', 'autoloadfix' ); ?></div></td><td data-label="<?php esc_attr_e( 'Assessment', 'autoloadfix' ); ?>"><span class="autoloadfix-pill autoloadfix-pill-<?php echo esc_attr( $row['risk']['level'] ); ?>"><?php echo esc_html( $row['risk']['label'] ); ?></span><div class="autoloadfix-reason"><?php echo esc_html( $row['risk']['reason'] ); ?></div></td><td data-label="<?php esc_attr_e( 'Review tools', 'autoloadfix' ); ?>"><div class="autoloadfix-advanced-actions"><?php $this->toggle_form( 'autoloadfix_toggle_watch', $row['option_name'], 'watched', $row['watched'], $row['watched'] ? __( 'Unwatch', 'autoloadfix' ) : __( 'Watch', 'autoloadfix' ) ); ?><?php if ( 'protected' !== $row['risk']['level'] ) : $this->toggle_form( 'autoloadfix_toggle_ignore', $row['option_name'], 'ignored', $row['ignored'], $row['ignored'] ? __( 'Unignore', 'autoloadfix' ) : __( 'Ignore', 'autoloadfix' ) ); endif; ?></div></td></tr>
 			<?php endforeach; ?><tr id="autoloadfix-advanced-empty" class="autoloadfix-advanced-empty" hidden><td colspan="5"><?php esc_html_e( 'No options match the current filters.', 'autoloadfix' ); ?></td></tr>
 			</tbody></table></div>
 		</div>

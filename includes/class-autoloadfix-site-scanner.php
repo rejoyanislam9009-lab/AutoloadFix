@@ -138,6 +138,8 @@ class AutoloadFix_Site_Scanner {
 		$stats    = $this->get_stats( $results );
 		$guidance = $this->get_cache_context();
 		$progress = $total > 0 ? min( 100, (int) round( ( $cursor / $total ) * 100 ) ) : 0;
+		/* translators: %d: Maximum number of public URLs scanned in one run. */
+		$scan_limit_description = sprintf( __( 'AutoloadFix scans up to %d public URLs per run and processes only a small batch at a time to reduce server load.', 'autoloadfix' ), self::MAX_URLS );
 
 		$this->render_notice();
 		?>
@@ -188,7 +190,7 @@ class AutoloadFix_Site_Scanner {
 						<span><?php echo esc_html( sprintf( '%1$d / %2$d (%3$d%%)', min( $cursor, $total ), $total, $progress ) ); ?></span>
 					</div>
 					<div class="autoloadfix-progress"><span style="width:<?php echo esc_attr( $progress ); ?>%"></span></div>
-					<p class="description"><?php echo esc_html( sprintf( __( 'AutoloadFix scans up to %d public URLs per run and processes only a small batch at a time to reduce server load.', 'autoloadfix' ), self::MAX_URLS ) ); ?></p>
+					<p class="description"><?php echo esc_html( $scan_limit_description ); ?></p>
 				</section>
 			<?php endif; ?>
 
@@ -198,7 +200,7 @@ class AutoloadFix_Site_Scanner {
 					<div><span><?php esc_html_e( 'Detected cache tool', 'autoloadfix' ); ?></span><strong><?php echo esc_html( $guidance['name'] ); ?></strong></div>
 					<div><span><?php esc_html_e( 'Purge path', 'autoloadfix' ); ?></span><strong><?php echo esc_html( $guidance['purge'] ); ?></strong></div>
 					<div><span><?php esc_html_e( 'Cache settings', 'autoloadfix' ); ?></span><strong><?php echo esc_html( $guidance['cache'] ); ?></strong></div>
-					<div><span><?php esc_html_e( 'Exclusion settings', 'autoloadfix' ); ?></span><strong><?php echo esc_html( $guidance['exclude'] ); ?></strong></div>
+					<div><span><?php esc_html_e( 'Exclusion settings', 'autoloadfix' ); ?></span><strong><?php echo esc_html( $guidance['exclude_path'] ); ?></strong></div>
 				</div>
 			</section>
 
@@ -559,14 +561,20 @@ class AutoloadFix_Site_Scanner {
 		$steps = array();
 
 		if ( in_array( $code, array( 'not_warming', 'unexpected_bypass', 'cache_control_private', 'no_header' ), true ) ) {
+			/* translators: %s: Cache plugin settings path. */
 			$steps[] = sprintf( __( 'Open %s and confirm page caching is enabled for public visitors.', 'autoloadfix' ), $ctx['cache'] );
-			$steps[] = sprintf( __( 'Review %1$s and confirm this URL path is not excluded unless it really needs to be: %2$s', 'autoloadfix' ), $ctx['exclude'], $path );
+			/* translators: 1: Cache exclusion settings path, 2: Affected URL path. */
+			$steps[] = sprintf( __( 'Review %1$s and confirm this URL path is not excluded unless it really needs to be: %2$s', 'autoloadfix' ), $ctx['exclude_path'], $path );
+			/* translators: %s: Cache purge menu path. */
 			$steps[] = sprintf( __( 'Clear the cache from %s, load the public page, then return here and click “Re-check this page”.', 'autoloadfix' ), $ctx['purge'] );
 		} elseif ( 'dynamic_hit' === $code ) {
-			$steps[] = sprintf( __( 'Open %1$s and confirm the dynamic path is excluded from shared page cache: %2$s', 'autoloadfix' ), $ctx['exclude'], $path );
+			/* translators: 1: Cache exclusion settings path, 2: Dynamic URL path. */
+			$steps[] = sprintf( __( 'Open %1$s and confirm the dynamic path is excluded from shared page cache: %2$s', 'autoloadfix' ), $ctx['exclude_path'], $path );
 			$steps[] = __( 'For WooCommerce, verify Cart, Checkout, My Account, logged-in/customer-session requests, and personalized fragments are not shared as full-page cache.', 'autoloadfix' );
+			/* translators: %s: Cache purge menu path. */
 			$steps[] = sprintf( __( 'Purge from %s, then use “Re-check this page”. A BYPASS/MISS can be correct for this dynamic page; a shared HIT should disappear.', 'autoloadfix' ), $ctx['purge'] );
 		} elseif ( 'stale' === $code ) {
+			/* translators: %s: Cache purge menu path. */
 			$steps[] = sprintf( __( 'Purge the active cache at %s.', 'autoloadfix' ), $ctx['purge'] );
 			$steps[] = __( 'Open the page once in a private/logged-out browser session, then re-check it here.', 'autoloadfix' );
 		} elseif ( in_array( $code, array( 'slow', 'very_slow' ), true ) ) {
@@ -595,14 +603,14 @@ class AutoloadFix_Site_Scanner {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
 		$defs = array(
-			array( 'file' => 'litespeed-cache/litespeed-cache.php', 'name' => 'LiteSpeed Cache', 'purge' => 'LiteSpeed Cache > Toolbox > Purge > Purge All', 'cache' => 'LiteSpeed Cache > Cache > Cache', 'exclude' => 'LiteSpeed Cache > Cache > Excludes' ),
-			array( 'file' => 'wp-rocket/wp-rocket.php', 'name' => 'WP Rocket', 'purge' => 'Settings > WP Rocket > Dashboard > Clear Cache', 'cache' => 'Settings > WP Rocket > Cache', 'exclude' => 'Settings > WP Rocket > Advanced Rules > Never Cache URL(s)' ),
-			array( 'file' => 'w3-total-cache/w3-total-cache.php', 'name' => 'W3 Total Cache', 'purge' => 'Performance > Dashboard > Empty All Caches', 'cache' => 'Performance > General Settings > Page Cache', 'exclude' => 'Performance > Page Cache > Never cache the following pages' ),
-			array( 'file' => 'wp-super-cache/wp-cache.php', 'name' => 'WP Super Cache', 'purge' => 'Settings > WP Super Cache > Contents > Delete Cache', 'cache' => 'Settings > WP Super Cache > Easy/Advanced > Caching On', 'exclude' => 'Settings > WP Super Cache > Advanced > Rejected URL Strings' ),
-			array( 'file' => 'wp-fastest-cache/wpFastestCache.php', 'name' => 'WP Fastest Cache', 'purge' => 'WP Fastest Cache > Delete Cache', 'cache' => 'WP Fastest Cache > Settings > Cache System', 'exclude' => 'WP Fastest Cache > Exclude' ),
-			array( 'file' => 'breeze/breeze.php', 'name' => 'Breeze', 'purge' => 'Settings > Breeze > Purge All Cache', 'cache' => 'Settings > Breeze > Basic Options > Cache System', 'exclude' => 'Settings > Breeze > Advanced Options > Never Cache URLs' ),
-			array( 'file' => 'sg-cachepress/sg-cachepress.php', 'name' => 'Speed Optimizer', 'purge' => 'Speed Optimizer > Caching > Flush Cache', 'cache' => 'Speed Optimizer > Caching', 'exclude' => 'Speed Optimizer > Caching > Exclude URLs' ),
-			array( 'file' => 'wp-optimize/wp-optimize.php', 'name' => 'WP-Optimize', 'purge' => 'WP-Optimize > Cache > Purge cache', 'cache' => 'WP-Optimize > Cache > Page cache', 'exclude' => 'WP-Optimize > Cache > Advanced settings > URLs to exclude' ),
+			array( 'file' => 'litespeed-cache/litespeed-cache.php', 'name' => 'LiteSpeed Cache', 'purge' => 'LiteSpeed Cache > Toolbox > Purge > Purge All', 'cache' => 'LiteSpeed Cache > Cache > Cache', 'exclude_path' => 'LiteSpeed Cache > Cache > Excludes' ),
+			array( 'file' => 'wp-rocket/wp-rocket.php', 'name' => 'WP Rocket', 'purge' => 'Settings > WP Rocket > Dashboard > Clear Cache', 'cache' => 'Settings > WP Rocket > Cache', 'exclude_path' => 'Settings > WP Rocket > Advanced Rules > Never Cache URL(s)' ),
+			array( 'file' => 'w3-total-cache/w3-total-cache.php', 'name' => 'W3 Total Cache', 'purge' => 'Performance > Dashboard > Empty All Caches', 'cache' => 'Performance > General Settings > Page Cache', 'exclude_path' => 'Performance > Page Cache > Never cache the following pages' ),
+			array( 'file' => 'wp-super-cache/wp-cache.php', 'name' => 'WP Super Cache', 'purge' => 'Settings > WP Super Cache > Contents > Delete Cache', 'cache' => 'Settings > WP Super Cache > Easy/Advanced > Caching On', 'exclude_path' => 'Settings > WP Super Cache > Advanced > Rejected URL Strings' ),
+			array( 'file' => 'wp-fastest-cache/wpFastestCache.php', 'name' => 'WP Fastest Cache', 'purge' => 'WP Fastest Cache > Delete Cache', 'cache' => 'WP Fastest Cache > Settings > Cache System', 'exclude_path' => 'WP Fastest Cache > Exclude' ),
+			array( 'file' => 'breeze/breeze.php', 'name' => 'Breeze', 'purge' => 'Settings > Breeze > Purge All Cache', 'cache' => 'Settings > Breeze > Basic Options > Cache System', 'exclude_path' => 'Settings > Breeze > Advanced Options > Never Cache URLs' ),
+			array( 'file' => 'sg-cachepress/sg-cachepress.php', 'name' => 'Speed Optimizer', 'purge' => 'Speed Optimizer > Caching > Flush Cache', 'cache' => 'Speed Optimizer > Caching', 'exclude_path' => 'Speed Optimizer > Caching > Exclude URLs' ),
+			array( 'file' => 'wp-optimize/wp-optimize.php', 'name' => 'WP-Optimize', 'purge' => 'WP-Optimize > Cache > Purge cache', 'cache' => 'WP-Optimize > Cache > Page cache', 'exclude_path' => 'WP-Optimize > Cache > Advanced settings > URLs to exclude' ),
 		);
 		foreach ( $defs as $def ) {
 			if ( is_plugin_active( $def['file'] ) || ( is_multisite() && is_plugin_active_for_network( $def['file'] ) ) ) {
@@ -615,7 +623,7 @@ class AutoloadFix_Site_Scanner {
 			'name'       => __( 'No recognized WordPress page-cache plugin', 'autoloadfix' ),
 			'purge'      => __( 'Use your hosting/CDN cache control if one exists', 'autoloadfix' ),
 			'cache'      => __( 'Check your host/server cache settings', 'autoloadfix' ),
-			'exclude'    => __( 'Check host/CDN cache exclusion rules', 'autoloadfix' ),
+			'exclude_path' => __( 'Check host/CDN cache exclusion rules', 'autoloadfix' ),
 		);
 	}
 
