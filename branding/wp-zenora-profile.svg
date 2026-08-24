@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="WP Zenora professional profile avatar">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#08131F"/>
+    <stop offset="0.55" stop-color="#0B2233"/>
+    <stop offset="1" stop-color="#103D48"/>
+  </linearGradient>
+  <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#34E6C3"/>
+    <stop offset="0.52" stop-color="#39BEFF"/>
+    <stop offset="1" stop-color="#7C6CFF"/>
+  </linearGradient>
+  <linearGradient id="mark" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#F6FFFF"/>
+    <stop offset="0.55" stop-color="#78E9FF"/>
+    <stop offset="1" stop-color="#48E2B4"/>
+  </linearGradient>
+  <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="12" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="18" stdDeviation="26" flood-color="#000" flood-opacity=".45"/>
+  </filter>
+</defs>
+<rect width="1024" height="1024" rx="230" fill="url(#bg)"/>
+<circle cx="512" cy="468" r="332" fill="#0A1B2A" stroke="url(#ring)" stroke-width="22" filter="url(#shadow)"/>
+<circle cx="512" cy="468" r="292" fill="none" stroke="#1B4051" stroke-width="3" opacity=".85"/>
+<path d="M232 394 A308 308 0 0 1 710 220" fill="none" stroke="#34E6C3" stroke-width="9" stroke-linecap="round" opacity=".55"/>
+<path d="M810 520 A308 308 0 0 1 325 714" fill="none" stroke="#3BBEFF" stroke-width="9" stroke-linecap="round" opacity=".45"/>
+<circle cx="708" cy="222" r="13" fill="#34E6C3" filter="url(#softGlow)"/>
+<circle cx="326" cy="713" r="10" fill="#7C7BFF" filter="url(#softGlow)"/>
+<g filter="url(#softGlow)">
+  <path d="M288 332 L362 332 L412 558 L482 332 L548 332 L618 558 L668 332 L742 332 L662 624 L589 624 L515 410 L441 624 L368 624 Z" fill="url(#mark)"/>
+</g>
+<text x="512" y="855" text-anchor="middle" font-family="Inter, Arial, Helvetica, sans-serif" font-size="72" font-weight="800" letter-spacing="4" fill="#F7FFFF">WP ZENORA</text>
+<text x="512" y="907" text-anchor="middle" font-family="Inter, Arial, Helvetica, sans-serif" font-size="28" font-weight="600" letter-spacing="7" fill="#77DDF1" opacity=".9">WORDPRESS CREATOR</text>
+<rect x="428" y="112" width="168" height="54" rx="27" fill="#102E3D" stroke="#2BDDBD" stroke-width="2"/>
+<text x="512" y="148" text-anchor="middle" font-family="Inter, Arial, Helvetica, sans-serif" font-size="24" font-weight="800" letter-spacing="3" fill="#B8FFF0">PREMIUM</text>
+</svg>
