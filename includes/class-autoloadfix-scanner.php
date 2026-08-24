@@ -56,7 +56,7 @@ class AutoloadFix_Scanner {
 		$args            = array_merge( array( $threshold ), $autoload_values );
 		$sql             = "SELECT COUNT(*) AS option_count, COALESCE(SUM(LENGTH(option_value)), 0) AS total_size, COALESCE(SUM(CASE WHEN LENGTH(option_value) >= %d THEN 1 ELSE 0 END), 0) AS large_count FROM {$wpdb->options} WHERE autoload IN ({$placeholders})";
 		$prepared        = $wpdb->prepare( $sql, $args ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$row             = $wpdb->get_row( $prepared, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$row             = $wpdb->get_row( $prepared, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh aggregate diagnostics require a direct options-table read.
 		$total_size = isset( $row['total_size'] ) ? (int) $row['total_size'] : 0;
 		$count      = isset( $row['option_count'] ) ? (int) $row['option_count'] : 0;
 		$large      = isset( $row['large_count'] ) ? (int) $row['large_count'] : 0;
@@ -86,7 +86,7 @@ class AutoloadFix_Scanner {
 		$args[]          = $limit;
 		$sql             = "SELECT option_name, autoload, LENGTH(option_value) AS option_size FROM {$wpdb->options} WHERE autoload IN ({$placeholders}) ORDER BY option_size DESC LIMIT %d";
 		$prepared        = $wpdb->prepare( $sql, $args ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$rows            = $wpdb->get_results( $prepared, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$rows            = $wpdb->get_results( $prepared, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh ranked diagnostics require a direct options-table read.
 		$summary         = $this->get_summary();
 		$settings        = $this->get_settings();
 		$threshold       = (int) $settings['large_option_threshold'];
@@ -110,7 +110,7 @@ class AutoloadFix_Scanner {
 			return null;
 		}
 		$sql = $wpdb->prepare( "SELECT option_name, autoload, LENGTH(option_value) AS option_size FROM {$wpdb->options} WHERE option_name = %s LIMIT 1", $option_name );
-		$row = $wpdb->get_row( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$row = $wpdb->get_row( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reads one requested option's autoload metadata without loading its value.
 		if ( ! is_array( $row ) ) {
 			return null;
 		}
@@ -163,7 +163,7 @@ class AutoloadFix_Scanner {
 	/** @return array<int,array<string,mixed>> */
 	public function get_autoload_breakdown() {
 		global $wpdb;
-		$rows = $wpdb->get_results( "SELECT autoload, COUNT(*) AS option_count, COALESCE(SUM(LENGTH(option_value)), 0) AS total_size FROM {$wpdb->options} GROUP BY autoload ORDER BY total_size DESC", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$rows = $wpdb->get_results( "SELECT autoload, COUNT(*) AS option_count, COALESCE(SUM(LENGTH(option_value)), 0) AS total_size FROM {$wpdb->options} GROUP BY autoload ORDER BY total_size DESC", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh aggregate diagnostics require a direct options-table read.
 		return is_array( $rows ) ? $rows : array();
 	}
 
@@ -229,6 +229,7 @@ class AutoloadFix_Scanner {
 		$name_lower = strtolower( $option_name );
 		foreach ( $theme_keys as $theme_key ) {
 			if ( strlen( $theme_key ) >= 4 && ( 0 === strpos( $name_lower, strtolower( $theme_key ) . '_' ) || 0 === strpos( $name_lower, strtolower( $theme_key ) . '-' ) ) ) {
+				/* translators: %s: Active WordPress theme name. */
 				return array( 'label' => sprintf( __( 'Theme: %s', 'autoloadfix' ), $theme_name ), 'type' => 'theme', 'status' => 'active', 'confidence' => 88 );
 			}
 		}

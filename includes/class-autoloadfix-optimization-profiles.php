@@ -48,7 +48,19 @@ class AutoloadFix_Optimization_Profiles {
 		$scan           = $this->get_scan_state();
 		$recommendation = $this->build_recommendation( $adapter, $results );
 		$ready          = $adapter['export_supported'] && $scan['complete'] && ! empty( $recommendation['changes'] );
-		$notice         = isset( $_GET['af_profile_notice'] ) ? sanitize_key( wp_unslash( $_GET['af_profile_notice'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$notice         = isset( $_GET['af_profile_notice'] ) ? sanitize_key( wp_unslash( $_GET['af_profile_notice'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin notice selector.
+
+		$scan_readiness = __( 'Complete', 'autoloadfix' );
+		if ( ! $scan['complete'] ) {
+			/* translators: 1: Number of scanned pages, 2: Total pages in the current scan. */
+			$scan_readiness = sprintf( __( '%1$d / %2$d pages', 'autoloadfix' ), $scan['cursor'], $scan['total'] );
+		}
+		/* translators: %s: Native settings import path inside the detected cache plugin. */
+		$import_path_step = sprintf( __( 'Open %s.', 'autoloadfix' ), $adapter['import_path'] );
+		/* translators: %d: Number of actionable manual findings. */
+		$manual_heading = sprintf( __( 'Manual actions (%d)', 'autoloadfix' ), count( $recommendation['manual_action'] ) );
+		/* translators: %d: Number of informational cache checks. */
+		$info_heading = sprintf( __( 'Informational checks (%d)', 'autoloadfix' ), count( $recommendation['manual_info'] ) );
 
 		if ( 'no_changes' === $notice ) {
 			echo '<div class="notice notice-info is-dismissible"><p>' . esc_html__( 'No safe importable setting change is currently available. This can be a good result; do not import a configuration file unless a scanner finding actually requires one.', 'autoloadfix' ) . '</p></div>';
@@ -69,7 +81,7 @@ class AutoloadFix_Optimization_Profiles {
 			<div class="autoloadfix-profile-summary">
 				<div><span><?php esc_html_e( 'Detected cache plugin', 'autoloadfix' ); ?></span><strong><?php echo esc_html( $adapter['name'] ); ?></strong></div>
 				<div><span><?php esc_html_e( 'Import format', 'autoloadfix' ); ?></span><strong><?php echo esc_html( $adapter['format_label'] ); ?></strong></div>
-				<div><span><?php esc_html_e( 'Scan readiness', 'autoloadfix' ); ?></span><strong><?php echo esc_html( $scan['complete'] ? __( 'Complete', 'autoloadfix' ) : sprintf( __( '%1$d / %2$d pages', 'autoloadfix' ), $scan['cursor'], $scan['total'] ) ); ?></strong></div>
+				<div><span><?php esc_html_e( 'Scan readiness', 'autoloadfix' ); ?></span><strong><?php echo esc_html( $scan_readiness ); ?></strong></div>
 				<div><span><?php esc_html_e( 'Safe profile changes', 'autoloadfix' ); ?></span><strong><?php echo esc_html( number_format_i18n( count( $recommendation['changes'] ) ) ); ?></strong></div>
 			</div>
 
@@ -108,7 +120,7 @@ class AutoloadFix_Optimization_Profiles {
 					<div class="autoloadfix-panel-head"><div><h2><?php esc_html_e( 'Import & verify workflow', 'autoloadfix' ); ?></h2><p><?php esc_html_e( 'The generated file is never applied silently. You remain in control of the third-party plugin settings.', 'autoloadfix' ); ?></p></div></div>
 					<ol class="autoloadfix-profile-steps">
 						<li><?php esc_html_e( 'Download the AutoloadFix import profile.', 'autoloadfix' ); ?></li>
-						<li><?php echo esc_html( sprintf( __( 'Open %s.', 'autoloadfix' ), $adapter['import_path'] ) ); ?></li>
+						<li><?php echo esc_html( $import_path_step ); ?></li>
 						<li><?php esc_html_e( 'Import the file, review the cache plugin confirmation, then purge its cache.', 'autoloadfix' ); ?></li>
 						<li><?php esc_html_e( 'Return to Site Problem Scanner and use Re-check problem pages. AutoloadFix will test the affected URLs again instead of assuming the import worked.', 'autoloadfix' ); ?></li>
 					</ol>
@@ -133,11 +145,11 @@ class AutoloadFix_Optimization_Profiles {
 			<section class="autoloadfix-panel">
 				<div class="autoloadfix-panel-head"><div><h2><?php esc_html_e( 'Findings outside the import profile', 'autoloadfix' ); ?></h2><p><?php esc_html_e( 'Not every diagnostic belongs in a settings file. Actionable server/application findings stay manual, while uncertain cache evidence stays informational until a stronger signal is available.', 'autoloadfix' ); ?></p></div></div>
 				<div class="autoloadfix-findings-group">
-					<h3><?php echo esc_html( sprintf( __( 'Manual actions (%d)', 'autoloadfix' ), count( $recommendation['manual_action'] ) ) ); ?></h3>
+					<h3><?php echo esc_html( $manual_heading ); ?></h3>
 					<?php $this->render_findings( $recommendation['manual_action'], __( 'No actionable manual finding is currently stored.', 'autoloadfix' ) ); ?>
 				</div>
 				<div class="autoloadfix-findings-group">
-					<h3><?php echo esc_html( sprintf( __( 'Informational checks (%d)', 'autoloadfix' ), count( $recommendation['manual_info'] ) ) ); ?></h3>
+					<h3><?php echo esc_html( $info_heading ); ?></h3>
 					<?php $this->render_findings( $recommendation['manual_info'], __( 'No informational-only cache check is currently stored.', 'autoloadfix' ) ); ?>
 				</div>
 			</section>
@@ -413,6 +425,7 @@ class AutoloadFix_Optimization_Profiles {
 		if ( empty( $recommendation['changes'] ) ) {
 			$count = count( $recommendation['manual_action'] );
 			if ( $count > 0 ) {
+				/* translators: %d: Number of actionable manual findings that remain. */
 				return sprintf( _n( 'No import change is justified. Resolve the %d actionable finding manually and re-check it; informational UNKNOWN cache states do not justify a cache mutation.', 'No import change is justified. Resolve the %d actionable findings manually and re-check them; informational UNKNOWN cache states do not justify a cache mutation.', $count, 'autoloadfix' ), $count );
 			}
 			return __( 'The scan found no high-confidence cache setting change. This is a valid result; leave the working cache configuration unchanged rather than importing an unnecessary profile.', 'autoloadfix' );

@@ -125,6 +125,7 @@ class AutoloadFix_Audit {
 			}
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Writes to AutoloadFix's dedicated audit history table.
 		$inserted = $wpdb->insert(
 			$wpdb->prefix . 'autoloadfix_audits',
 			array(
@@ -159,7 +160,7 @@ class AutoloadFix_Audit {
 	/** @return array<string,mixed>|null */
 	public function get_latest() {
 		global $wpdb;
-		$row = $wpdb->get_row( "SELECT id, created_at, trigger_type, total_size, option_count, large_count, score, delta_bytes, delta_percent FROM {$wpdb->prefix}autoloadfix_audits ORDER BY id DESC LIMIT 1", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$row = $wpdb->get_row( "SELECT id, created_at, trigger_type, total_size, option_count, large_count, score, delta_bytes, delta_percent FROM {$wpdb->prefix}autoloadfix_audits ORDER BY id DESC LIMIT 1", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Audit history must reflect the latest dedicated-table row.
 		return is_array( $row ) ? $row : null;
 	}
 
@@ -173,7 +174,7 @@ class AutoloadFix_Audit {
 		global $wpdb;
 		$limit = max( 1, min( 100, (int) $limit ) );
 		$sql   = $wpdb->prepare( "SELECT id, created_at, trigger_type, total_size, option_count, large_count, score, delta_bytes, delta_percent FROM {$wpdb->prefix}autoloadfix_audits ORDER BY id DESC LIMIT %d", $limit );
-		$rows  = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$rows  = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Audit history is intentionally read fresh from the dedicated table.
 		return is_array( $rows ) ? $rows : array();
 	}
 
@@ -188,7 +189,7 @@ class AutoloadFix_Audit {
 		$settings  = $this->scanner->get_settings();
 		$retention = max( 7, min( 365, (int) $settings['history_retention'] ) );
 		$cutoff    = wp_date( 'Y-m-d H:i:s', time() - ( $retention * DAY_IN_SECONDS ) );
-		$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->prefix}autoloadfix_audits WHERE created_at < %s", $cutoff ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->prefix}autoloadfix_audits WHERE created_at < %s", $cutoff ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Retention cleanup operates on AutoloadFix's dedicated audit table.
 	}
 
 	/**
