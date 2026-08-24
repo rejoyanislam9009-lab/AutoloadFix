@@ -1,5 +1,5 @@
 === AutoloadFix ===
-Contributors: rejoyanislam9009-lab
+Contributors: wpzenora
 Tags: autoload, database, performance, site health, optimization
 Requires at least: 6.6
 Tested up to: 7.1
