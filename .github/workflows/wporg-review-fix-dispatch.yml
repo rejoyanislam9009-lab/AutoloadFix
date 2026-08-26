@@ -1,0 +1,30 @@
+name: Dispatch WordPress.org review fix
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout review branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/wporg-review-aulonexa
+          fetch-depth: 0
+
+      - name: Apply review fixes
+        run: python .github/scripts/wporg_review_fix.py
+
+      - name: Commit to review branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m '[wporg-review-fix] Rename to Aulonexa and publish readable source'
+          git push origin HEAD:fix/wporg-review-aulonexa
