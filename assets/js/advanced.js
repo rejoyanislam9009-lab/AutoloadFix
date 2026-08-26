@@ -1,1 +1,79 @@
-(function(){'use strict';function q(s,c){return(c||document).querySelector(s)}function qa(s,c){return Array.prototype.slice.call((c||document).querySelectorAll(s))}function filter(){var t=q('#autoloadfix-advanced-table');if(!t)return;var s=(q('#autoloadfix-advanced-search').value||'').toLowerCase().trim(),r=q('#autoloadfix-advanced-risk').value,w=q('#autoloadfix-advanced-watched').checked,n=0;qa('.autoloadfix-advanced-option',t).forEach(function(row){var ok=(!s||(row.getAttribute('data-search')||'').indexOf(s)!==-1)&&('all'===r||row.getAttribute('data-risk')===r)&&(!w||row.getAttribute('data-watched')==='1');row.hidden=!ok;if(ok)n++});var c=q('#autoloadfix-advanced-count');if(c)c.textContent=n+' '+((window.AutoloadFixAdvanced&&AutoloadFixAdvanced.shown)||'shown');var e=q('#autoloadfix-advanced-empty');if(e)e.hidden=n!==0}['autoloadfix-advanced-search','autoloadfix-advanced-risk','autoloadfix-advanced-watched'].forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener(el.type==='search'?'input':'change',filter)});filter();var copy=q('#autoloadfix-advanced-copy');if(copy)copy.addEventListener('click',function(){var text=copy.getAttribute('data-copy')||'';if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).then(function(){copy.textContent=(window.AutoloadFixAdvanced&&AutoloadFixAdvanced.copied)||'Copied'})});if(window.AutoloadFixAdvanced&&AutoloadFixAdvanced.readOnly)qa('.autoloadfix-disable-button,.autoloadfix-restore-button').forEach(function(button){button.disabled=true;button.classList.add('autoloadfix-readonly-disabled');button.title='AutoloadFix read-only mode is enabled'});})();
+(function () {
+	'use strict';
+
+	function query(selector, context) {
+		return (context || document).querySelector(selector);
+	}
+
+	function queryAll(selector, context) {
+		return Array.prototype.slice.call((context || document).querySelectorAll(selector));
+	}
+
+	function filterAdvancedOptions() {
+		var table = query('#autoloadfix-advanced-table');
+		if (! table) {
+			return;
+		}
+
+		var searchField = query('#autoloadfix-advanced-search');
+		var riskField = query('#autoloadfix-advanced-risk');
+		var watchedField = query('#autoloadfix-advanced-watched');
+		var search = (searchField.value || '').toLowerCase().trim();
+		var risk = riskField.value;
+		var watchedOnly = watchedField.checked;
+		var shown = 0;
+
+		queryAll('.autoloadfix-advanced-option', table).forEach(function (row) {
+			var searchable = (row.getAttribute('data-search') || '').toLowerCase();
+			var matchesSearch = ! search || searchable.indexOf(search) !== -1;
+			var matchesRisk = 'all' === risk || row.getAttribute('data-risk') === risk;
+			var matchesWatched = ! watchedOnly || row.getAttribute('data-watched') === '1';
+			var visible = matchesSearch && matchesRisk && matchesWatched;
+
+			row.hidden = ! visible;
+			if (visible) {
+				shown++;
+			}
+		});
+
+		var count = query('#autoloadfix-advanced-count');
+		if (count) {
+			var shownLabel = (window.AutoloadFixAdvanced && AutoloadFixAdvanced.shown) || 'shown';
+			count.textContent = shown + ' ' + shownLabel;
+		}
+
+		var empty = query('#autoloadfix-advanced-empty');
+		if (empty) {
+			empty.hidden = shown !== 0;
+		}
+	}
+
+	['autoloadfix-advanced-search', 'autoloadfix-advanced-risk', 'autoloadfix-advanced-watched'].forEach(function (id) {
+		var field = document.getElementById(id);
+		if (field) {
+			field.addEventListener('autoloadfix-advanced-search' === id ? 'input' : 'change', filterAdvancedOptions);
+		}
+	});
+
+	filterAdvancedOptions();
+
+	var copyButton = query('#autoloadfix-advanced-copy');
+	if (copyButton) {
+		copyButton.addEventListener('click', function () {
+			var text = copyButton.getAttribute('data-copy') || '';
+			if (navigator.clipboard && navigator.clipboard.writeText) {
+				navigator.clipboard.writeText(text).then(function () {
+					copyButton.textContent = (window.AutoloadFixAdvanced && AutoloadFixAdvanced.copied) || 'Copied';
+				});
+			}
+		});
+	}
+
+	if (window.AutoloadFixAdvanced && AutoloadFixAdvanced.readOnly) {
+		queryAll('.autoloadfix-disable-button, .autoloadfix-restore-button').forEach(function (button) {
+			button.disabled = true;
+			button.classList.add('autoloadfix-readonly-disabled');
+			button.title = 'AutoloadFix read-only mode is enabled';
+		});
+	}
+}());
