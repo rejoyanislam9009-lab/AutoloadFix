@@ -1,15 +1,15 @@
 name: Dispatch WordPress.org review fix
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
 
 permissions:
   contents: write
 
 jobs:
   apply:
-    if: github.event.pull_request.head.ref == 'fix/wporg-review-aulonexa'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout review branch
