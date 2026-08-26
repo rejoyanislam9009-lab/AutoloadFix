@@ -1,41 +1,38 @@
-# AutoloadFix
+# AutoloadFix development repository
 
-AutoloadFix is a WordPress performance utility for auditing autoloaded options, tracking growth, understanding cache layers, diagnosing page-specific problems, generating conservative optimization profiles for supported cache plugins, verifying fixes, and restoring autoload changes from snapshots.
+This repository contains the maintained development history for the plugin currently being resubmitted to WordPress.org under the distinctive public identity **Aulonexa - Autoload & Cache Diagnostics**.
+
+The pending WordPress.org permalink request is `aulonexa-autoload-diagnostics`.
+
+## Source and build
+
+All custom runtime PHP, JavaScript, and CSS is maintained in human-readable form. In particular, `assets/js/advanced.js` is committed as readable source and is not a generated/minified-only artifact.
+
+The plugin does not require npm, webpack, transpilation, or another front-end compilation step for its runtime assets. The GitHub Actions workflow in `.github/workflows/quality.yml` documents the release packaging and runs PHP syntax checks plus WordPress Plugin Check.
 
 ## Requirements
 
 - WordPress 6.6+
 - PHP 7.2+
 
-## Version 1.4.0 highlights
+## Version 1.4.x functionality
 
-- Everything from the 1.3.0 Site Problem Scanner
-- New Optimization Profiles dashboard
-- Requires the current bounded Site Problem Scanner run to reach 100% before profile generation
-- WP Rocket JSON import-profile adapter
-- LiteSpeed Cache native `.data` import-profile adapter
-- Profiles are issue-driven: only high-confidence scanner findings that map directly to a known setting can modify the generated file
-- Dynamic commerce shared-cache HITs can generate exact-path cache exclusions
-- Aggressive CSS/JS, delay, combine, image, object-cache, or crawler settings are not enabled merely because they exist
-- Current/recommended/reason diff before download
-- Exact third-party import path plus purge and re-check instructions
-- A zero-change result is treated as a valid outcome; AutoloadFix no longer presents an import workflow when no profile is needed
-- Actionable manual findings are separated from informational cache-evidence checks
-- Dynamic commerce UNKNOWN/PRESENT cache states are informational evidence gaps, not automatic configuration failures
-- LiteSpeed scanner probes now recognize `X-LiteSpeed-Cache-Control: no-cache/private` as a bypass signal inside AutoloadFix diagnostics without modifying the site's real response headers
-- Pre-release dynamic UNKNOWN results that were promoted to actionable-looking Info rows are normalized back to their real underlying severity
-- Slow responses, 4xx/5xx, redirects, unknown cache status, and other non-deterministic findings are never falsely “fixed” by a settings file
-- No automatic third-party import, no external configuration service, and no profile upload to AutoloadFix
+- Autoload health metrics and option diagnostics
+- Snapshot-backed autoload changes and restore
+- Monitoring and audit history
+- Cache & Optimization Advisor
+- Page-by-page Site Problem Scanner
+- WooCommerce-aware dynamic page checks
+- Supported cache-plugin optimization profiles
+- WP Rocket JSON profile support
+- LiteSpeed Cache native `.data` profile support
+- Re-check workflow that verifies results instead of assuming a setting change worked
 
 ## Safety
 
-AutoloadFix never deletes option values and never automatically mutates unknown options. Administrator-triggered autoload changes require a successful snapshot first and are verified after WordPress applies the change.
+The plugin never deletes option values and never automatically mutates unknown options. Administrator-triggered autoload changes require a successful snapshot first and are verified after WordPress applies the change.
 
-The cache advisor and site scanner do not install third-party cache plugins. Optimization Profiles are administrator-requested downloads only: AutoloadFix builds a profile for an explicitly supported native format, shows what would change, and leaves the actual import to the administrator. After import, Site Problem Scanner re-tests the affected pages instead of assuming the configuration change worked.
-
-Site scanning is deliberately batched to reduce server load. Requests are anonymous and restricted to the same WordPress site. The scanner stores response metadata needed for diagnosis, not page content.
-
-Cache and performance findings are diagnostic signals, not guarantees. Hosting-level caches, CDNs, reverse proxies, logged-in behavior, commerce sessions, security rules, and custom code can affect results.
+The cache advisor and site scanner do not install third-party cache plugins. Optimization profiles are administrator-requested downloads only. Site scanner requests are anonymous and restricted to the same WordPress site, and the scanner stores diagnostic response metadata rather than page content.
 
 ## License
 
