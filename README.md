@@ -1,8 +1,8 @@
-# AutoloadFix development repository
+# Loadvexa - Autoload & Cache Diagnostics
 
-This repository contains the maintained development history for the plugin currently being resubmitted to WordPress.org under the distinctive public identity **Aulonexa - Autoload & Cache Diagnostics**.
+This repository contains the maintained development history for the plugin being resubmitted to WordPress.org under the distinctive public identity **Loadvexa - Autoload & Cache Diagnostics**.
 
-The pending WordPress.org permalink request is `aulonexa-autoload-diagnostics`.
+The requested WordPress.org permalink is `loadvexa-autoload-diagnostics`.
 
 ## Source and build
 
