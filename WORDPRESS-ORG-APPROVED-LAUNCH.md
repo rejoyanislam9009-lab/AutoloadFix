@@ -10,19 +10,25 @@ SVN URL: https://plugins.svn.wordpress.org/loadvexa-autoload-diagnostics/
 
 Public URL: https://wordpress.org/plugins/loadvexa-autoload-diagnostics/
 
-## Initial SVN layout
+## Launch status
 
-WordPress.org uses three top-level release locations:
+Initial WordPress.org deployment completed successfully on 2026-09-02 through GitHub Actions.
 
-- `/trunk/` — current release source
-- `/tags/1.4.1/` — immutable release tag
-- `/assets/` — directory-only marketing assets, not shipped inside the plugin ZIP
+WordPress.org SVN commit: **r3677160**
 
-The stable tag in trunk/tag must remain `1.4.1`, matching the plugin header version.
+The deploy job completed with `Plugin deployed!` and generated the distribution ZIP successfully.
 
-## WordPress.org assets
+## SVN layout deployed
 
-Use these exact lowercase filenames in SVN `/assets/`:
+- `/trunk/` — current 1.4.1 release source
+- `/tags/1.4.1/` — release tag
+- `/assets/` — WordPress.org directory assets
+
+The deployed trunk and tag use Stable tag / Version `1.4.1`.
+
+## WordPress.org assets deployed
+
+The launch workflow generated and committed these directory assets:
 
 - `icon.svg`
 - `icon-128x128.png`
@@ -43,34 +49,20 @@ Screenshot order:
 4. Site Problem Scanner
 5. Optimization Profiles
 
-## GitHub Actions first deployment
+The readme screenshot captions are normalized during deployment to match these five images.
 
-The repository contains `.github/workflows/deploy-wordpress-org.yml`. It deliberately deploys the exact approved WordPress.org submission ZIP for version 1.4.1 and validates the version/stable tag before committing to SVN.
+## GitHub Actions deployment
 
-Before running it:
+`.github/workflows/deploy-wordpress-org.yml` downloads the exact approved WordPress.org 1.4.1 submission, generates the directory artwork using `.github/scripts/build-wporg-assets.sh`, validates release metadata/assets, and deploys to the permanent WordPress.org SVN slug.
 
-1. Upload the prepared file `wordpress-org-assets.zip` to the repository root on `main`.
-2. In GitHub open **Settings > Secrets and variables > Actions**.
-3. Create repository secret `SVN_USERNAME` with value `wpzenora`.
-4. Create repository secret `SVN_PASSWORD` with the SVN-specific password generated in the WordPress.org Account & Security screen.
-5. Open **Actions > Deploy Loadvexa to WordPress.org > Run workflow**.
-6. The workflow will unpack the approved plugin, unpack the assets into the WordPress.org assets directory, validate required files, and deploy version 1.4.1 to the permanent slug.
+SVN username is fixed to `wpzenora`. The SVN-specific password is read only from the GitHub Actions secret `SVN_PASSWORD`; the secret value is never committed to the repository or printed in logs.
+
+The workflow can be run manually with `workflow_dispatch`. The `.wordpress-org-deploy-trigger` file is also available for an intentional push-triggered deployment.
 
 ## Credential safety
 
-Never put the WordPress.org SVN password into a commit, file, issue, pull request, or chat. Store it only as a GitHub Actions secret or in a trusted local SVN credential store. The SVN username is `wpzenora`.
-
-## First release validation
-
-Before deployment:
-
-1. Confirm main plugin Version is `1.4.1`.
-2. Confirm readme Stable tag is `1.4.1`.
-3. Confirm the asset bundle contains all required icon/banner/screenshot names.
-4. Confirm assets belong in top-level SVN `/assets/`, not inside `/trunk/assets/`.
-5. Deploy only after the GitHub secrets are configured.
-6. Check the public directory page after WordPress.org processes the SVN commit.
+Never put the WordPress.org SVN password into a commit, file, issue, pull request, or chat. Keep it only in GitHub Actions secrets or a trusted local SVN credential store.
 
 ## After launch
 
-Search/profile propagation can take time. Avoid empty releases or artificial review/install manipulation. Keep support responses prompt and release only tested, meaningful updates.
+WordPress.org may take time to process the SVN commit and propagate the public page, search results, assets, and profile association. Future releases should use a new version/tag and be tested before SVN deployment. Avoid empty releases, artificial review/install manipulation, and unverified compatibility claims.
