@@ -59,6 +59,7 @@ jobs:
           test -f build/loadvexa-autoload-diagnostics/readme.txt
           grep -q '^ \* Version:[[:space:]]*1\.4\.1$' build/loadvexa-autoload-diagnostics/loadvexa-autoload-diagnostics.php
           grep -qi '^Stable tag:[[:space:]]*1\.4\.1$' build/loadvexa-autoload-diagnostics/readme.txt
+          grep -qi '^Contributors:.*wpzenora' build/loadvexa-autoload-diagnostics/readme.txt
           test -f .wordpress-org/icon.svg
           test -f .wordpress-org/icon-128x128.png
           test -f .wordpress-org/icon-256x256.png
