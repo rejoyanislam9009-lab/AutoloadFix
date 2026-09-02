@@ -1,0 +1,59 @@
+name: Deploy Loadvexa to WordPress.org
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy approved 1.4.1 release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify required asset bundle exists
+        shell: bash
+        run: |
+          if [ ! -f wordpress-org-assets.zip ]; then
+            echo "Missing wordpress-org-assets.zip in the repository root. Upload the prepared asset bundle before running this workflow."
+            exit 1
+          fi
+
+      - name: Prepare approved plugin package
+        shell: bash
+        run: |
+          rm -rf build .wordpress-org
+          mkdir -p build .wordpress-org
+          curl --fail --location --silent --show-error \
+            'https://wordpress.org/plugins/files/2026/08/26_16-43-59_loadvexa-autoload-diagnostics.zip' \
+            --output /tmp/loadvexa-approved.zip
+          unzip -q /tmp/loadvexa-approved.zip -d build
+          unzip -q wordpress-org-assets.zip -d .wordpress-org
+
+      - name: Validate approved release metadata
+        shell: bash
+        run: |
+          test -f build/loadvexa-autoload-diagnostics/loadvexa-autoload-diagnostics.php
+          test -f build/loadvexa-autoload-diagnostics/readme.txt
+          grep -q '^ \* Version:[[:space:]]*1\.4\.1$' build/loadvexa-autoload-diagnostics/loadvexa-autoload-diagnostics.php
+          grep -qi '^Stable tag:[[:space:]]*1\.4\.1$' build/loadvexa-autoload-diagnostics/readme.txt
+          test -f .wordpress-org/icon-128x128.png
+          test -f .wordpress-org/icon-256x256.png
+          test -f .wordpress-org/banner-772x250.png
+          test -f .wordpress-org/banner-1544x500.png
+          for n in 1 2 3 4 5; do test -f ".wordpress-org/screenshot-${n}.png"; done
+
+      - name: Deploy to WordPress.org SVN
+        uses: 10up/action-wordpress-plugin-deploy@2.3.0
+        with:
+          generate-zip: true
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SLUG: loadvexa-autoload-diagnostics
+          VERSION: 1.4.1
+          BUILD_DIR: ${{ github.workspace }}/build/loadvexa-autoload-diagnostics
+          ASSETS_DIR: .wordpress-org
