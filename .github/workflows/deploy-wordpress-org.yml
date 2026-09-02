@@ -18,13 +18,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Verify required asset bundle exists
+      - name: Install SVG renderer
         shell: bash
         run: |
-          if [ ! -f wordpress-org-assets.zip ]; then
-            echo "Missing wordpress-org-assets.zip in the repository root. Upload the prepared asset bundle before running this workflow."
-            exit 1
-          fi
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends librsvg2-bin
 
       - name: Prepare approved plugin package
         shell: bash
@@ -35,15 +33,42 @@ jobs:
             'https://wordpress.org/plugins/files/2026/08/26_16-43-59_loadvexa-autoload-diagnostics.zip' \
             --output /tmp/loadvexa-approved.zip
           unzip -q /tmp/loadvexa-approved.zip -d build
-          unzip -q wordpress-org-assets.zip -d .wordpress-org
+          chmod +x .github/scripts/build-wporg-assets.sh
+          .github/scripts/build-wporg-assets.sh .wordpress-org
 
-      - name: Validate approved release metadata
+      - name: Set directory screenshot captions
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+          path = Path('build/loadvexa-autoload-diagnostics/readme.txt')
+          text = path.read_text(encoding='utf-8')
+          block = '''== Screenshots ==
+
+1. Autoload Health Overview — health score, total autoload size, option count, and protected/review classifications.
+2. Monitor & Tools — audit trends, watched options, review workspace, diagnostics, and safety controls.
+3. Cache & Optimization Advisor — detected cache layers, server fit, purge guidance, and verification signals.
+4. Site Problem Scanner — bounded page-by-page scan progress, response timing, cache evidence, and review status.
+5. Optimization Profiles — supported cache-plugin readiness, conservative import guidance, and manual findings.
+
+'''
+          if '== Screenshots ==' in text:
+              text = re.sub(r'== Screenshots ==\n.*?(?=\n== [^=].* ==\n)', block.rstrip() + '\n', text, count=1, flags=re.S)
+          else:
+              marker = '== Changelog =='
+              text = text.replace(marker, block + marker)
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Validate approved release and assets
         shell: bash
         run: |
           test -f build/loadvexa-autoload-diagnostics/loadvexa-autoload-diagnostics.php
           test -f build/loadvexa-autoload-diagnostics/readme.txt
           grep -q '^ \* Version:[[:space:]]*1\.4\.1$' build/loadvexa-autoload-diagnostics/loadvexa-autoload-diagnostics.php
           grep -qi '^Stable tag:[[:space:]]*1\.4\.1$' build/loadvexa-autoload-diagnostics/readme.txt
+          test -f .wordpress-org/icon.svg
           test -f .wordpress-org/icon-128x128.png
           test -f .wordpress-org/icon-256x256.png
           test -f .wordpress-org/banner-772x250.png
