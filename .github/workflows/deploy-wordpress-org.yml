@@ -44,20 +44,11 @@ jobs:
           import re
           path = Path('build/loadvexa-autoload-diagnostics/readme.txt')
           text = path.read_text(encoding='utf-8')
-          block = '''== Screenshots ==
-
-1. Autoload Health Overview — health score, total autoload size, option count, and protected/review classifications.
-2. Monitor & Tools — audit trends, watched options, review workspace, diagnostics, and safety controls.
-3. Cache & Optimization Advisor — detected cache layers, server fit, purge guidance, and verification signals.
-4. Site Problem Scanner — bounded page-by-page scan progress, response timing, cache evidence, and review status.
-5. Optimization Profiles — supported cache-plugin readiness, conservative import guidance, and manual findings.
-
-'''
+          block = "== Screenshots ==\n\n1. Autoload Health Overview - health score, total autoload size, option count, and protected/review classifications.\n2. Monitor & Tools - audit trends, watched options, review workspace, diagnostics, and safety controls.\n3. Cache & Optimization Advisor - detected cache layers, server fit, purge guidance, and verification signals.\n4. Site Problem Scanner - bounded page-by-page scan progress, response timing, cache evidence, and review status.\n5. Optimization Profiles - supported cache-plugin readiness, conservative import guidance, and manual findings.\n\n"
           if '== Screenshots ==' in text:
               text = re.sub(r'== Screenshots ==\n.*?(?=\n== [^=].* ==\n)', block.rstrip() + '\n', text, count=1, flags=re.S)
           else:
-              marker = '== Changelog =='
-              text = text.replace(marker, block + marker)
+              text = text.replace('== Changelog ==', block + '== Changelog ==')
           path.write_text(text, encoding='utf-8')
           PY
 
