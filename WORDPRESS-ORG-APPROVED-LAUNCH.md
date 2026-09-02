@@ -18,7 +18,7 @@ WordPress.org uses three top-level release locations:
 - `/tags/1.4.1/` — immutable release tag
 - `/assets/` — directory-only marketing assets, not shipped inside the plugin ZIP
 
-The stable tag in both trunk and the 1.4.1 tag must remain `1.4.1`, matching the plugin header version.
+The stable tag in trunk/tag must remain `1.4.1`, matching the plugin header version.
 
 ## WordPress.org assets
 
@@ -35,9 +35,7 @@ Use these exact lowercase filenames in SVN `/assets/`:
 - `screenshot-4.png`
 - `screenshot-5.png`
 
-Screenshot captions in `readme.txt` must match the five uploaded screenshots.
-
-## Screenshot order
+Screenshot order:
 
 1. Autoload Health Overview
 2. Monitor & Tools
@@ -45,22 +43,33 @@ Screenshot captions in `readme.txt` must match the five uploaded screenshots.
 4. Site Problem Scanner
 5. Optimization Profiles
 
+## GitHub Actions first deployment
+
+The repository contains `.github/workflows/deploy-wordpress-org.yml`. It deliberately deploys the exact approved WordPress.org submission ZIP for version 1.4.1 and validates the version/stable tag before committing to SVN.
+
+Before running it:
+
+1. Upload the prepared file `wordpress-org-assets.zip` to the repository root on `main`.
+2. In GitHub open **Settings > Secrets and variables > Actions**.
+3. Create repository secret `SVN_USERNAME` with value `wpzenora`.
+4. Create repository secret `SVN_PASSWORD` with the SVN-specific password generated in the WordPress.org Account & Security screen.
+5. Open **Actions > Deploy Loadvexa to WordPress.org > Run workflow**.
+6. The workflow will unpack the approved plugin, unpack the assets into the WordPress.org assets directory, validate required files, and deploy version 1.4.1 to the permanent slug.
+
 ## Credential safety
 
-Never put the WordPress.org SVN password into this repository, a commit, an issue, or chat. Store it only in a local SVN credential store or a GitHub Actions secret. The SVN username is `wpzenora`.
+Never put the WordPress.org SVN password into a commit, file, issue, pull request, or chat. Store it only as a GitHub Actions secret or in a trusted local SVN credential store. The SVN username is `wpzenora`.
 
 ## First release validation
 
-Before committing to SVN:
+Before deployment:
 
-1. Confirm PHP syntax passes for every PHP file.
-2. Confirm JavaScript syntax passes for shipped JavaScript files.
-3. Confirm main plugin header Version is `1.4.1`.
-4. Confirm both readme stable tags are `1.4.1`.
-5. Confirm no development-only files are in trunk/tag.
-6. Confirm assets are in top-level `/assets/`, not inside `/trunk/assets/`.
-7. Commit trunk, tag and assets as a finished release.
-8. Check the public directory page after WordPress.org processes the SVN commit.
+1. Confirm main plugin Version is `1.4.1`.
+2. Confirm readme Stable tag is `1.4.1`.
+3. Confirm the asset bundle contains all required icon/banner/screenshot names.
+4. Confirm assets belong in top-level SVN `/assets/`, not inside `/trunk/assets/`.
+5. Deploy only after the GitHub secrets are configured.
+6. Check the public directory page after WordPress.org processes the SVN commit.
 
 ## After launch
 
