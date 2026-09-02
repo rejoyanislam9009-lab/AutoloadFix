@@ -2,6 +2,10 @@ name: Deploy Loadvexa to WordPress.org
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.wordpress-org-deploy-trigger'
 
 permissions:
   contents: read
